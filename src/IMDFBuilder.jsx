@@ -125,7 +125,8 @@ const mkBldg = () => ({
   lat: "45.3476",
   lng: "-75.7629",
   category: "office",
-  levels: [{ id: uid(), name: "1", ordinal: 0, items: [] }],
+  directoryId: "",
+  levels: [{ id: uid(), name: "1", ordinal: 0, directoryId: "", items: [] }],
 });
 
 // ── Pixel to Geo conversion ────────────────────────────────────────
@@ -287,6 +288,8 @@ export default function IMDFBuilder() {
               id: uid(),
               cat: dragging.cat,
               name: "",
+              accessibility: null,
+              directoryId: "",
               x: Math.max(0, x),
               y: Math.max(0, y),
               w: rt.w,
@@ -330,10 +333,15 @@ export default function IMDFBuilder() {
         const tr = pxToGeo(it.x + it.w, it.y, lat, lng);
         const br = pxToGeo(it.x + it.w, it.y + it.h, lat, lng);
         const bl = pxToGeo(it.x, it.y + it.h, lat, lng);
+        // Auto-calculate display_point as center of the room
+        const centerPt = pxToGeo(it.x + it.w / 2, it.y + it.h / 2, lat, lng);
         allUnits.push({
           id: it.id,
           cat: it.cat,
           name: it.name,
+          accessibility: it.accessibility || null,
+          directoryId: it.directoryId || null,
+          displayPoint: { type: "Point", coordinates: centerPt },
           levelIdx: lvi,
           coords: [[tl, tr, br, bl, tl]],
         });
@@ -355,6 +363,7 @@ export default function IMDFBuilder() {
             restriction: null,
             display_point: { type: "Point", coordinates: [lng, lat] },
             address_id: null,
+            directory_id: b.directoryId || null,
           },
         },
       ],
@@ -421,6 +430,7 @@ export default function IMDFBuilder() {
             display_point: { type: "Point", coordinates: [lng, lat] },
             address_id: null,
             building_ids: [b.id],
+            directory_id: lv.directoryId || null,
           },
         };
       }),
@@ -437,9 +447,12 @@ export default function IMDFBuilder() {
           alt_name: null,
           category: u.cat,
           restriction: null,
+          accessibility: u.accessibility,
           level_id: b.levels[u.levelIdx]?.id,
           building_ids: [b.id],
           address_id: null,
+          display_point: u.displayPoint,
+          directory_id: u.directoryId,
         },
       })),
     };
@@ -722,6 +735,14 @@ export default function IMDFBuilder() {
                       </div>
                     </div>
 
+                    <label style={lbl}>Building PlaceId <span style={{fontWeight:400,color:"#475569"}}>(from Get-PlaceV3, optional)</span></label>
+                    <input
+                      style={{...inp, fontSize: 12, fontFamily: "'SF Mono','Fira Code',monospace"}}
+                      value={b.directoryId || ""}
+                      onChange={(e) => updateBldg(bIdx, { directoryId: e.target.value })}
+                      placeholder="e.g. 1b9a176e-8f65-44bd-bf20-8aceca8f395a"
+                    />
+
                     <label style={{ ...lbl, marginBottom: 8 }}>Floors</label>
                     {b.levels.map((lv, lIdx) => (
                       <div
@@ -772,6 +793,17 @@ export default function IMDFBuilder() {
                         <span style={{ fontSize: 10, color: "#475569" }}>
                           {lv.items.length} items
                         </span>
+                        <input
+                          style={{...inp, width: 180, marginBottom: 0, padding: "6px 8px", fontSize: 10, fontFamily: "'SF Mono','Fira Code',monospace"}}
+                          value={lv.directoryId || ""}
+                          placeholder="Floor PlaceId (optional)"
+                          title="Floor PlaceId from Get-PlaceV3"
+                          onChange={(e) => {
+                            const nl = [...b.levels];
+                            nl[lIdx] = { ...nl[lIdx], directoryId: e.target.value };
+                            updateBldg(bIdx, { levels: nl });
+                          }}
+                        />
                         {b.levels.length > 1 && (
                           <button
                             onClick={() => {
@@ -801,6 +833,7 @@ export default function IMDFBuilder() {
                             name: `${b.levels.length + 1}`,
                             ordinal: b.levels.length,
                             items: [],
+                            directoryId: "",
                           },
                         ];
                         updateBldg(bIdx, { levels: nl });
@@ -1281,6 +1314,27 @@ export default function IMDFBuilder() {
                     </option>
                   ))}
                 </select>
+                <label style={lbl}>Accessibility</label>
+                <select
+                  style={{ ...inp, fontSize: 13, padding: "7px 10px" }}
+                  value={selectedItem.accessibility || ""}
+                  onChange={(e) =>
+                    updateItem(selectedItem.id, { accessibility: e.target.value || null })
+                  }
+                >
+                  <option value="">Not set</option>
+                  <option value="yes">♿ Accessible</option>
+                  <option value="no">Not accessible</option>
+                </select>
+                <label style={lbl}>PlaceId <span style={{fontWeight:400,color:"#475569"}}>(optional)</span></label>
+                <input
+                  style={{ ...inp, fontSize: 10, padding: "6px 10px", fontFamily: "'SF Mono','Fira Code',monospace" }}
+                  value={selectedItem.directoryId || ""}
+                  placeholder="Room PlaceId from MS Places"
+                  onChange={(e) =>
+                    updateItem(selectedItem.id, { directoryId: e.target.value })
+                  }
+                />
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <label style={lbl}>W (px)</label>

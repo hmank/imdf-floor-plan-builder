@@ -155,4 +155,3 @@ MIT
 ## Contributing
 
 PRs welcome! Ideas: snap-to-grid, copy/paste rooms, undo/redo, floor plan image overlay, Overpass API footprint fetch, Microsoft Graph PlaceId integration.
-# imdf-floor-plan-builder
