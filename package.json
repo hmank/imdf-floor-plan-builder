@@ -1,0 +1,28 @@
+{
+  "name": "imdf-floor-plan-builder",
+  "version": "1.0.0",
+  "description": "Drag-and-drop IMDF floor plan builder for Microsoft Places. Create building layouts visually and export IMDF ZIP packages ready for import.",
+  "private": false,
+  "license": "MIT",
+  "keywords": [
+    "imdf",
+    "microsoft-places",
+    "floor-plan",
+    "indoor-mapping",
+    "geojson",
+    "microsoft-365"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0"
+  }
+}
