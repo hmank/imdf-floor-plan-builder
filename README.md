@@ -6,6 +6,10 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 
 - Drag & drop rooms (office, workspace, restroom, kitchen, walkway, stairs, elevator, etc.) onto a visual canvas
 - Resize and reposition rooms with handles
+- Snap-to-grid placement and resize behavior
+- Auto-alignment guides to line up room edges/centers
+- Undo/redo with action history
+- Copy/paste selected rooms with keyboard shortcuts
 - Multi-building and multi-floor support
 - Exports valid IMDF ZIP files containing all 5 required GeoJSON files
 - Converts canvas positions to real geographic coordinates
@@ -14,7 +18,7 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 ## Quick Start (Local)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/imdf-floor-plan-builder.git
+git clone https://github.com/hmank/imdf-floor-plan-builder.git
 cd imdf-floor-plan-builder
 npm install
 npm run dev
@@ -85,9 +89,24 @@ Share this URL with anyone who needs to create IMDF files.
 - **Click** a room to select it
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
-- **Press Delete** key or click the 🗑 button to remove
+- **Snap to grid** is enabled by default (toggle with **G**)
+- **Alignment guides** appear while dragging near other rooms
+- **Press Delete/Backspace** key or click the 🗑 button to remove
+- **Undo / Redo** with toolbar buttons or keyboard shortcuts
+- **Copy / Paste** selected rooms with keyboard shortcuts
 - Edit name, type, and dimensions in the right properties panel
 - Switch floors with the tabs at the top
+
+### Keyboard Shortcuts
+
+| Action | Windows/Linux | macOS |
+|--------|---------------|-------|
+| Undo | `Ctrl+Z` | `Cmd+Z` |
+| Redo | `Ctrl+Shift+Z` or `Ctrl+Y` | `Cmd+Shift+Z` |
+| Copy selected room | `Ctrl+C` | `Cmd+C` |
+| Paste room | `Ctrl+V` | `Cmd+V` |
+| Toggle grid snap | `G` | `G` |
+| Delete selected room | `Delete` / `Backspace` | `Delete` / `Backspace` |
 
 ### Step 3: Export
 - Click **Download ZIP** for each building
@@ -126,10 +145,27 @@ imdf-floor-plan-builder/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml        ← Auto-deploys to GitHub Pages
-├── public/
 ├── src/
-│   ├── main.jsx              ← React entry point
-│   └── IMDFBuilder.jsx       ← Main app (all-in-one component)
+│   ├── components/
+│   │   ├── AppHeader.jsx
+│   │   ├── ExportStep.jsx
+│   │   ├── FloorEditorStep.jsx
+│   │   └── SetupStep.jsx
+│   ├── constants/
+│   │   └── editor.js
+│   ├── state/
+│   │   └── factories.js
+│   ├── styles/
+│   │   └── ui.js
+│   ├── utils/
+│   │   ├── editorMath.js
+│   │   ├── geo.js
+│   │   ├── history.js
+│   │   ├── imdfExport.js
+│   │   ├── uid.js
+│   │   └── zip.js
+│   ├── IMDFBuilder.jsx       ← App orchestrator
+│   └── main.jsx              ← React entry point
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -142,11 +178,26 @@ imdf-floor-plan-builder/
 | Setting | File | Default | Purpose |
 |---------|------|---------|---------|
 | `base` | `vite.config.js` | `/imdf-floor-plan-builder/` | Must match your GitHub repo name |
-| `CANVAS_W` | `IMDFBuilder.jsx` | `800` | Canvas width in pixels |
-| `CANVAS_H` | `IMDFBuilder.jsx` | `600` | Canvas height in pixels |
-| `METERS_PER_PX` | `IMDFBuilder.jsx` | `0.1` | Scale: 1 pixel = 0.1 meters |
+| `CANVAS_W` | `src/constants/editor.js` | `800` | Canvas width in pixels |
+| `CANVAS_H` | `src/constants/editor.js` | `600` | Canvas height in pixels |
+| `METERS_PER_PX` | `src/constants/editor.js` | `0.1` | Scale: 1 pixel = 0.1 meters |
+| `GRID_SIZE` | `src/constants/editor.js` | `40` | Snap/grid spacing in pixels |
 
 For larger buildings, increase `CANVAS_W`/`CANVAS_H` or decrease `METERS_PER_PX`.
+
+## Tests
+
+Run unit tests for history, geometry, snap/alignment, and export logic:
+
+```bash
+npm run test
+```
+
+Run tests in watch mode while developing:
+
+```bash
+npm run test:watch
+```
 
 ## License
 
@@ -154,4 +205,4 @@ MIT
 
 ## Contributing
 
-PRs welcome! Ideas: snap-to-grid, copy/paste rooms, undo/redo, floor plan image overlay, Overpass API footprint fetch, Microsoft Graph PlaceId integration.
+PRs welcome! Current roadmap ideas include floor plan image overlay, Overpass API footprint fetch, and Microsoft Graph PlaceId integration.
