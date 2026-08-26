@@ -21,6 +21,63 @@ function isEditableTarget(target) {
   );
 }
 
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isValidLatitude(value) {
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) && num >= -90 && num <= 90;
+}
+
+function isValidLongitude(value) {
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) && num >= -180 && num <= 180;
+}
+
+function getBuildingReadiness(building) {
+  const hasName = isNonEmptyString(building?.name);
+  const hasValidLat = isValidLatitude(building?.lat);
+  const hasValidLng = isValidLongitude(building?.lng);
+  const levels = Array.isArray(building?.levels) ? building.levels : [];
+  const hasLevels = levels.length > 0;
+  const missingFloorNameIndexes = levels
+    .map((level, idx) => (isNonEmptyString(level?.name) ? -1 : idx))
+    .filter((idx) => idx >= 0);
+  const hasFloorNames = missingFloorNameIndexes.length === 0;
+  const roomCount = levels.reduce(
+    (sum, level) => sum + (Array.isArray(level.items) ? level.items.length : 0),
+    0
+  );
+
+  const setupMissing = [];
+  if (!hasName) setupMissing.push("building name");
+  if (!hasValidLat) setupMissing.push("valid latitude");
+  if (!hasValidLng) setupMissing.push("valid longitude");
+  if (!hasLevels) setupMissing.push("at least one floor");
+  if (hasLevels && !hasFloorNames) setupMissing.push("floor names");
+
+  const setupReady = setupMissing.length === 0;
+  const exportMissing = [...setupMissing];
+  if (roomCount === 0) {
+    exportMissing.push("at least one room on any floor");
+  }
+
+  return {
+    hasName,
+    hasValidLat,
+    hasValidLng,
+    hasLevels,
+    hasFloorNames,
+    missingFloorNameIndexes,
+    roomCount,
+    setupReady,
+    exportReady: exportMissing.length === 0,
+    setupMissing,
+    exportMissing,
+  };
+}
+
 export default function IMDFBuilder() {
   const [history, setHistory] = useState(() => createHistoryState([createBuilding()]));
   const [bi, setBi] = useState(0);
@@ -55,6 +112,29 @@ export default function IMDFBuilder() {
         0
       ),
     [buildings]
+  );
+  const readinessByBuilding = useMemo(
+    () => buildings.map((building) => getBuildingReadiness(building)),
+    [buildings]
+  );
+  const activeBuildingReadiness = readinessByBuilding[bi] || {
+    setupReady: false,
+    exportReady: false,
+    setupMissing: [],
+    exportMissing: [],
+    missingFloorNameIndexes: [],
+    roomCount: 0,
+    hasName: false,
+    hasValidLat: false,
+    hasValidLng: false,
+  };
+  const setupReadyCount = useMemo(
+    () => readinessByBuilding.filter((readiness) => readiness.setupReady).length,
+    [readinessByBuilding]
+  );
+  const exportReadyCount = useMemo(
+    () => readinessByBuilding.filter((readiness) => readiness.exportReady).length,
+    [readinessByBuilding]
   );
 
   const applyBuildingsUpdate = useCallback((updater, options = {}) => {
@@ -620,6 +700,9 @@ export default function IMDFBuilder() {
       {step === 0 && (
         <SetupStep
           buildings={buildings}
+          readinessByBuilding={readinessByBuilding}
+          activeBuildingReadiness={activeBuildingReadiness}
+          setupReadyCount={setupReadyCount}
           activeBuildingIndex={bi}
           onSelectBuilding={selectBuilding}
           onDeleteBuilding={deleteBuilding}
@@ -674,6 +757,8 @@ export default function IMDFBuilder() {
       {step === 2 && (
         <ExportStep
           buildings={buildings}
+          readinessByBuilding={readinessByBuilding}
+          exportReadyCount={exportReadyCount}
           totalItems={totalItems}
           onExportBuilding={exportBuilding}
           onBackToEditor={() => setStep(1)}
