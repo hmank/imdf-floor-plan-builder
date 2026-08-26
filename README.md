@@ -10,8 +10,11 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 - Auto-alignment guides to line up room edges/centers
 - Undo/redo with action history
 - Copy/paste selected rooms with keyboard shortcuts
+- Room dimensions editable in meters with live pixel preview
 - Multi-building and multi-floor support
 - Exports valid IMDF ZIP files containing all 5 required GeoJSON files
+- Setup checklist and export-readiness status to guide publish flow
+- Optional configuration upload for local/self-hosted deployments
 - Converts canvas positions to real geographic coordinates
 - Zero backend — runs entirely in the browser
 
@@ -83,6 +86,8 @@ Share this URL with anyone who needs to create IMDF files.
 - Enter building name, latitude/longitude (right-click Google Maps to copy), and category
 - Add floors with names and ordinal numbers (0 = ground, 1 = 2nd floor, -1 = basement)
 - Ordinals must match the `SortOrder` value configured in Microsoft Places
+- Follow the built-in **Publish checklist** and resolve any **Needs Input** badges
+- Optional: use **Upload Configuration (JSON)** to load a saved layout (disabled on GitHub Pages)
 
 ### Step 2: Floor Editor
 - **Drag** room types from the left palette onto the canvas
@@ -95,7 +100,9 @@ Share this URL with anyone who needs to create IMDF files.
 - **Undo / Redo** with toolbar buttons or keyboard shortcuts
 - **Copy / Paste** selected rooms with keyboard shortcuts
 - Edit name, type, and dimensions in the right properties panel
+- Enter **Width (m)** and **Length (m)** directly; corresponding pixel values are shown in brackets
 - Switch floors with the tabs at the top
+- When ready, click **Ready? Open Export Tab →** (or the Export tab in the header)
 
 ### Keyboard Shortcuts
 
@@ -110,6 +117,8 @@ Share this URL with anyone who needs to create IMDF files.
 
 ### Step 3: Export
 - Click **Download ZIP** for each building
+- Buildings must be export-ready (required setup complete + at least one room)
+- Use **Export All Ready Buildings** to download all valid configurations
 - Each ZIP contains: `building.geojson`, `footprint.geojson`, `level.geojson`, `unit.geojson`, `fixture.geojson`
 
 ### Step 4: Import into Microsoft Places
@@ -181,7 +190,7 @@ imdf-floor-plan-builder/
 | `CANVAS_W` | `src/constants/editor.js` | `800` | Canvas width in pixels |
 | `CANVAS_H` | `src/constants/editor.js` | `600` | Canvas height in pixels |
 | `METERS_PER_PX` | `src/constants/editor.js` | `0.1` | Scale: 1 pixel = 0.1 meters |
-| `GRID_SIZE` | `src/constants/editor.js` | `40` | Snap/grid spacing in pixels |
+| `GRID_SIZE` | `src/constants/editor.js` | `20` | Snap/grid spacing in pixels |
 
 For larger buildings, increase `CANVAS_W`/`CANVAS_H` or decrease `METERS_PER_PX`.
 

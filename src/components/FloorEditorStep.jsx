@@ -42,6 +42,7 @@ export default function FloorEditorStep({
   onDeleteSelected,
   onUpdateItem,
   onDeleteItem,
+  onGoToExport,
 }) {
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
@@ -204,6 +205,18 @@ export default function FloorEditorStep({
             {snapEnabled ? "🧲 Snap ON" : "Snap OFF"}
           </button>
           <HistoryPill historyActions={historyActions} />
+          <button
+            onClick={onGoToExport}
+            style={{
+              ...chip,
+              border: "1px solid #1d4ed8",
+              color: "#bfdbfe",
+              background: "rgba(37,99,235,0.18)",
+            }}
+            title="Go to Export tab and download IMDF"
+          >
+            Ready? Open Export Tab →
+          </button>
           <span style={{ fontSize: 11, color: "#475569" }}>{items.length} items</span>
         </div>
 
@@ -528,34 +541,46 @@ export default function FloorEditorStep({
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>W (px)</label>
+                <label style={lbl}>Width (m) [{Math.round(selectedItem.w)} px]</label>
                 <input
                   style={{ ...inp, fontSize: 12, padding: "6px 8px" }}
                   type="number"
-                  value={Math.round(selectedItem.w)}
-                  onChange={(e) =>
+                  min={0.1}
+                  step={0.1}
+                  value={(selectedItem.w * METERS_PER_PX).toFixed(1)}
+                  onChange={(e) => {
+                    const widthMeters = Number.parseFloat(e.target.value);
+                    if (!Number.isFinite(widthMeters)) {
+                      return;
+                    }
                     onUpdateItem(selectedItem.id, {
-                      w: Math.max(20, parseInt(e.target.value, 10) || 20),
-                    })
-                  }
+                      w: Math.max(20, Math.round(widthMeters / METERS_PER_PX)),
+                    });
+                  }}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>H (px)</label>
+                <label style={lbl}>Length (m) [{Math.round(selectedItem.h)} px]</label>
                 <input
                   style={{ ...inp, fontSize: 12, padding: "6px 8px" }}
                   type="number"
-                  value={Math.round(selectedItem.h)}
-                  onChange={(e) =>
+                  min={0.1}
+                  step={0.1}
+                  value={(selectedItem.h * METERS_PER_PX).toFixed(1)}
+                  onChange={(e) => {
+                    const lengthMeters = Number.parseFloat(e.target.value);
+                    if (!Number.isFinite(lengthMeters)) {
+                      return;
+                    }
                     onUpdateItem(selectedItem.id, {
-                      h: Math.max(20, parseInt(e.target.value, 10) || 20),
-                    })
-                  }
+                      h: Math.max(20, Math.round(lengthMeters / METERS_PER_PX)),
+                    });
+                  }}
                 />
               </div>
             </div>
             <div style={{ fontSize: 10, color: "#475569", marginBottom: 12 }}>
-              ≈ {(selectedItem.w * METERS_PER_PX).toFixed(1)} × {(selectedItem.h * METERS_PER_PX).toFixed(1)} meters
+              Enter dimensions in meters; pixel values are shown in brackets for placement preview.
             </div>
             <div style={{ marginTop: "auto" }} />
             <button

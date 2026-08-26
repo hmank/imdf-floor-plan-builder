@@ -1,7 +1,7 @@
 export const CANVAS_W = 800;
 export const CANVAS_H = 600;
 export const METERS_PER_PX = 0.1;
-export const GRID_SIZE = 40;
+export const GRID_SIZE = 20;
 export const MIN_ITEM_SIZE = 20;
 export const DEFAULT_LAT = "45.3476";
 export const DEFAULT_LNG = "-75.7629";

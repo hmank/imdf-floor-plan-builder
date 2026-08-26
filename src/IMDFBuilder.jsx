@@ -8,6 +8,7 @@ import { createBuilding, createItemFromCategory, createLevel, createPastedItem }
 import { alignRectToItems, clampRectToCanvas, snapValue } from "./utils/editorMath";
 import { createHistoryState, commitFromSnapshot, redoHistory, undoHistory, updateHistoryPresent } from "./utils/history";
 import { generateImdfFiles } from "./utils/imdfExport";
+import { uid } from "./utils/uid";
 import { buildZip } from "./utils/zip";
 
 function isEditableTarget(target) {
@@ -78,6 +79,73 @@ function getBuildingReadiness(building) {
   };
 }
 
+function parseNumber(value, fallback = 0) {
+  const num = Number.parseFloat(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function normalizeUploadedConfiguration(rawConfig) {
+  const rawBuildings = Array.isArray(rawConfig)
+    ? rawConfig
+    : Array.isArray(rawConfig?.buildings)
+      ? rawConfig.buildings
+      : null;
+  if (!rawBuildings || rawBuildings.length === 0) {
+    throw new Error("Upload failed: expected a JSON array of buildings or { buildings: [...] }.");
+  }
+
+  return rawBuildings.map((building, buildingIndex) => {
+    const template = createBuilding();
+    const normalizedLevels = Array.isArray(building?.levels) && building.levels.length > 0
+      ? building.levels.map((level, levelIndex) => {
+          const rawItems = Array.isArray(level?.items) ? level.items : [];
+          const normalizedItems = rawItems.map((item, itemIndex) => {
+            const roomType = CAT_MAP[item?.cat] || CAT_MAP.unspecified;
+            const clamped = clampRectToCanvas({
+              x: parseNumber(item?.x, 0),
+              y: parseNumber(item?.y, 0),
+              w: parseNumber(item?.w, roomType.w),
+              h: parseNumber(item?.h, roomType.h),
+            });
+            return {
+              id: isNonEmptyString(item?.id) ? item.id : uid(),
+              cat: roomType.cat,
+              name: isNonEmptyString(item?.name) ? item.name : `Room ${itemIndex + 1}`,
+              accessibility: item?.accessibility === "yes" || item?.accessibility === "no"
+                ? item.accessibility
+                : null,
+              directoryId: isNonEmptyString(item?.directoryId) ? item.directoryId : "",
+              x: clamped.x,
+              y: clamped.y,
+              w: clamped.w,
+              h: clamped.h,
+            };
+          });
+          return {
+            id: isNonEmptyString(level?.id) ? level.id : uid(),
+            name: isNonEmptyString(level?.name) ? level.name : `${levelIndex + 1}`,
+            ordinal: Number.isFinite(Number.parseInt(level?.ordinal, 10))
+              ? Number.parseInt(level.ordinal, 10)
+              : levelIndex,
+            directoryId: isNonEmptyString(level?.directoryId) ? level.directoryId : "",
+            items: normalizedItems,
+          };
+        })
+      : [createLevel(1, 0)];
+
+    return {
+      ...template,
+      id: isNonEmptyString(building?.id) ? building.id : uid(),
+      name: isNonEmptyString(building?.name) ? building.name : `Building ${buildingIndex + 1}`,
+      lat: isValidLatitude(building?.lat) ? `${parseNumber(building.lat)}` : template.lat,
+      lng: isValidLongitude(building?.lng) ? `${parseNumber(building.lng)}` : template.lng,
+      category: isNonEmptyString(building?.category) ? building.category : template.category,
+      directoryId: isNonEmptyString(building?.directoryId) ? building.directoryId : "",
+      levels: normalizedLevels,
+    };
+  });
+}
+
 export default function IMDFBuilder() {
   const [history, setHistory] = useState(() => createHistoryState([createBuilding()]));
   const [bi, setBi] = useState(0);
@@ -90,11 +158,13 @@ export default function IMDFBuilder() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [clipboardItem, setClipboardItem] = useState(null);
   const [exportStatus, setExportStatus] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(null);
 
   const canvasRef = useRef(null);
   const gestureSnapshotRef = useRef(null);
 
   const buildings = history.present;
+  const uploadEnabled = typeof window !== "undefined" && !window.location.hostname.endsWith("github.io");
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
 
@@ -683,6 +753,39 @@ export default function IMDFBuilder() {
     }
   }, []);
 
+  const uploadConfiguration = useCallback(
+    async (file) => {
+      if (!file) {
+        return;
+      }
+      if (!uploadEnabled) {
+        setUploadStatus({
+          type: "error",
+          text: "Upload is disabled on GitHub Pages. Use local/self-hosted deployment to import files.",
+        });
+        return;
+      }
+      try {
+        const rawText = await file.text();
+        const parsed = JSON.parse(rawText);
+        const normalized = normalizeUploadedConfiguration(parsed);
+        applyBuildingsUpdate(normalized, { label: "Upload configuration" });
+        setBi(0);
+        setLi(0);
+        setSelected(null);
+        setAlignmentGuides([]);
+        setUploadStatus({
+          type: "success",
+          text: `Loaded ${normalized.length} building configuration from ${file.name}.`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Upload failed: invalid configuration JSON.";
+        setUploadStatus({ type: "error", text: message });
+      }
+    },
+    [applyBuildingsUpdate, uploadEnabled]
+  );
+
   return (
     <div
       style={{
@@ -703,6 +806,9 @@ export default function IMDFBuilder() {
           readinessByBuilding={readinessByBuilding}
           activeBuildingReadiness={activeBuildingReadiness}
           setupReadyCount={setupReadyCount}
+          uploadStatus={uploadStatus}
+          uploadEnabled={uploadEnabled}
+          onUploadConfiguration={uploadConfiguration}
           activeBuildingIndex={bi}
           onSelectBuilding={selectBuilding}
           onDeleteBuilding={deleteBuilding}
@@ -751,6 +857,7 @@ export default function IMDFBuilder() {
           onDeleteSelected={() => setSelected(null)}
           onUpdateItem={(id, patch) => updateItem(id, patch, { label: "Edit room properties" })}
           onDeleteItem={deleteItem}
+          onGoToExport={() => setStep(2)}
         />
       )}
 

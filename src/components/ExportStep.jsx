@@ -48,6 +48,9 @@ export default function ExportStep({
           <div style={{ marginTop: 8, fontSize: 12, color: "#cbd5e1" }}>
             {exportReadyCount}/{buildings.length} buildings ready · {readyRoomCount} ready rooms
           </div>
+          <div style={{ marginTop: 2, fontSize: 11, color: "#64748b" }}>
+            Total planned rooms across all buildings: {totalItems}
+          </div>
         </div>
         {buildings.map((building, buildingIndex) => {
           const readiness = readinessByBuilding[buildingIndex] || {

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { chip, inp, lbl, pBtn } from "../styles/ui";
 
 const requiredLabel = (
@@ -18,6 +19,9 @@ export default function SetupStep({
   readinessByBuilding,
   activeBuildingReadiness,
   setupReadyCount,
+  uploadStatus,
+  uploadEnabled,
+  onUploadConfiguration,
   activeBuildingIndex,
   onSelectBuilding,
   onDeleteBuilding,
@@ -28,6 +32,7 @@ export default function SetupStep({
   onDeleteLevel,
   onOpenEditor,
 }) {
+  const uploadInputRef = useRef(null);
   const invalidInput = {
     border: "1px solid #7f1d1d",
     background: "rgba(127,29,29,0.2)",
@@ -68,6 +73,53 @@ export default function SetupStep({
           </div>
           <div style={{ marginTop: 12, fontSize: 12, color: "#cbd5e1" }}>
             {setupReadyCount}/{buildings.length} building profiles ready for editing
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                onUploadConfiguration(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={!uploadEnabled}
+              style={{
+                ...chip,
+                border: uploadEnabled ? "1px solid #334155" : "1px solid #7f1d1d",
+                color: uploadEnabled ? "#cbd5e1" : "#fca5a5",
+                background: uploadEnabled ? "rgba(148,163,184,0.12)" : "rgba(127,29,29,0.2)",
+                cursor: uploadEnabled ? "pointer" : "not-allowed",
+                padding: "6px 10px",
+              }}
+              title={
+                uploadEnabled
+                  ? "Upload existing configuration JSON"
+                  : "Upload is disabled on GitHub Pages"
+              }
+            >
+              Upload Configuration (JSON)
+            </button>
+            <div style={{ marginTop: 6, fontSize: 11, color: "#64748b" }}>
+              Upload works on local/self-hosted deployments and is disabled on GitHub Pages.
+            </div>
+            {uploadStatus && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  color: uploadStatus.type === "success" ? "#4ade80" : "#fca5a5",
+                }}
+              >
+                {uploadStatus.text}
+              </div>
+            )}
           </div>
         </div>
 
