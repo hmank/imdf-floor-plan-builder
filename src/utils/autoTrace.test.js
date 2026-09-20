@@ -1,76 +1,99 @@
 import { describe, expect, it } from "vitest";
-import { analyzeOccupancyGrid } from "./autoTrace";
+import { buildWallMask, segmentRooms, traceFromPixels } from "./autoTrace";
 
-function createGrid(rows, cols, fill = false) {
-  return Array.from({ length: rows }, () => Array(cols).fill(fill));
+function createPlan(width, height) {
+  // White RGBA image.
+  const pixels = new Uint8ClampedArray(width * height * 4).fill(255);
+  const paint = (x, y, r, g, b) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const p = (y * width + x) * 4;
+    pixels[p] = r;
+    pixels[p + 1] = g;
+    pixels[p + 2] = b;
+    pixels[p + 3] = 255;
+  };
+  const rect = (x0, y0, x1, y1, thickness, color) => {
+    for (let t = 0; t < thickness; t += 1) {
+      for (let x = x0; x <= x1; x += 1) {
+        paint(x, y0 + t, ...color);
+        paint(x, y1 - t, ...color);
+      }
+      for (let y = y0; y <= y1; y += 1) {
+        paint(x0 + t, y, ...color);
+        paint(x1 - t, y, ...color);
+      }
+    }
+  };
+  const fill = (x0, y0, x1, y1, color) => {
+    for (let y = y0; y <= y1; y += 1) {
+      for (let x = x0; x <= x1; x += 1) {
+        paint(x, y, ...color);
+      }
+    }
+  };
+  return { pixels, rect, fill };
 }
 
-describe("auto-trace grid analysis", () => {
-  it("detects room suggestions inside enclosed wall loops", () => {
-    const grid = createGrid(12, 12, false);
+const GRAY = [140, 140, 140];
+const BLUE_FILL = [191, 215, 245];
 
-    for (let x = 2; x <= 9; x += 1) {
-      grid[2][x] = true;
-      grid[9][x] = true;
-    }
-    for (let y = 2; y <= 9; y += 1) {
-      grid[y][2] = true;
-      grid[y][9] = true;
-    }
+describe("pixel auto-trace", () => {
+  it("detects every enclosed room in a multi-room plan", () => {
+    const width = 300;
+    const height = 200;
+    const plan = createPlan(width, height);
+    // Outer wall.
+    plan.rect(10, 10, 289, 189, 2, GRAY);
+    // Vertical divider + horizontal divider => 4 rooms.
+    plan.fill(150, 10, 151, 189, GRAY);
+    plan.fill(10, 100, 289, 101, GRAY);
 
-    const traced = analyzeOccupancyGrid(grid, {
-      canvasW: 240,
-      canvasH: 240,
-      minWallRun: 2,
-      minRoomAreaCells: 4,
-    });
+    const traced = traceFromPixels(plan.pixels, width, height);
+    expect(traced.rooms.length).toBe(4);
+    const widths = traced.rooms.map((room) => room.w);
+    widths.forEach((w) => expect(w).toBeGreaterThan(120));
+  });
 
-    expect(traced.walls.length).toBeGreaterThan(0);
+  it("ignores colored fills when classifying walls and tags them as rooms", () => {
+    const width = 200;
+    const height = 200;
+    const plan = createPlan(width, height);
+    plan.rect(10, 10, 189, 189, 2, GRAY);
+    plan.fill(100, 10, 101, 189, GRAY);
+    // Pastel blue fill inside the right room must not be treated as a wall.
+    plan.fill(104, 14, 185, 185, BLUE_FILL);
+
+    const traced = traceFromPixels(plan.pixels, width, height);
+    expect(traced.rooms.length).toBe(2);
+    const colored = traced.rooms.find((room) => room.x > 90);
+    const plain = traced.rooms.find((room) => room.x < 90);
+    expect(colored.cat).toBe("room");
+    expect(plain.cat).toBe("office");
+  });
+
+  it("does not suggest the exterior background or thin corridors", () => {
+    const width = 200;
+    const height = 200;
+    const plan = createPlan(width, height);
+    // Single room in the middle; everything else is background.
+    plan.rect(60, 60, 139, 139, 2, GRAY);
+
+    const traced = traceFromPixels(plan.pixels, width, height);
     expect(traced.rooms.length).toBe(1);
-    expect(traced.rooms[0].w).toBeGreaterThan(20);
-    expect(traced.rooms[0].h).toBeGreaterThan(20);
+    expect(traced.rooms[0].x).toBeGreaterThanOrEqual(60);
+    expect(traced.rooms[0].w).toBeLessThan(90);
   });
 
-  it("does not suggest open areas that leak to the boundary", () => {
-    const grid = createGrid(10, 10, false);
-    const traced = analyzeOccupancyGrid(grid, {
-      canvasW: 200,
-      canvasH: 200,
-      minRoomAreaCells: 4,
-    });
-    expect(traced.rooms).toEqual([]);
-  });
+  it("seals hairline gaps so anti-aliased walls still enclose rooms", () => {
+    const width = 200;
+    const height = 200;
+    const plan = createPlan(width, height);
+    plan.rect(40, 40, 159, 159, 1, GRAY);
+    // Punch a one-pixel hole in the top wall.
+    plan.fill(100, 40, 100, 40, [255, 255, 255]);
 
-  it("can recover rooms when outer walls have tiny gaps", () => {
-    const grid = createGrid(14, 14, false);
-    for (let x = 3; x <= 10; x += 1) {
-      grid[3][x] = true;
-      grid[10][x] = true;
-    }
-    for (let y = 3; y <= 10; y += 1) {
-      grid[y][3] = true;
-      grid[y][10] = true;
-    }
-
-    // Simulate a doorway/gap that would otherwise leak the region.
-    grid[6][3] = false;
-
-    const strict = analyzeOccupancyGrid(grid, {
-      canvasW: 280,
-      canvasH: 280,
-      minWallRun: 2,
-      minRoomAreaCells: 4,
-      wallDilationPasses: 0,
-    });
-    const relaxed = analyzeOccupancyGrid(grid, {
-      canvasW: 280,
-      canvasH: 280,
-      minWallRun: 2,
-      minRoomAreaCells: 4,
-      wallDilationPasses: 2,
-    });
-
-    expect(strict.rooms.length).toBe(0);
-    expect(relaxed.rooms.length).toBeGreaterThan(0);
+    const wall = buildWallMask(plan.pixels, width, height, { closeGapPx: 1 });
+    const rooms = segmentRooms(wall.mask, width, height, { closeGapPx: 1 });
+    expect(rooms.rooms.length).toBe(1);
   });
 });

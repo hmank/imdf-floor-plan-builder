@@ -166,22 +166,18 @@ export default function FloorEditorStep({
             <div style={{ marginTop: 8, fontSize: 11, color: "#94a3b8", lineHeight: 1.45 }}>
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
-                {traceOverlay.walls.length} walls ·{" "}
                 {traceOverlay.applied
-                  ? `${traceOverlay.appliedRoomCount || 0} suggestions applied`
-                  : `${traceOverlay.rooms.length} room suggestions`}
-                {traceOverlay.relaxedModeApplied
-                  ? ` · ${traceOverlay.profile || "relaxed"} sensitivity applied`
-                  : ""}
+                  ? `${traceOverlay.appliedRoomCount || 0} rooms added · wall blueprint shown`
+                  : `${traceOverlay.rooms.length} rooms detected`}
               </div>
               {traceOverlay.applied && (
                 <div style={{ marginTop: 6, color: "#86efac" }}>
-                  Blueprint mode: outer and interior walls are now shown without suggestion overlays.
+                  Click any room to rename it or change its type. Drag edges to fine-tune.
                 </div>
               )}
               {!traceOverlay.applied && traceOverlay.rooms.length === 0 && (
                 <div style={{ marginTop: 6, color: "#fbbf24" }}>
-                  No enclosed rooms detected yet. Try cropping to the floor map area and re-run auto-trace.
+                  No enclosed rooms detected. Crop the image tightly to the floor plan and try again.
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
@@ -199,7 +195,7 @@ export default function FloorEditorStep({
                     textAlign: "center",
                   }}
                 >
-                  + Add Suggested Rooms
+                  + Add Detected Rooms
                 </button>
                 <button
                   onClick={onClearTraceOverlay}
@@ -399,7 +395,7 @@ export default function FloorEditorStep({
               ))}
             </svg>
 
-            {traceOverlay?.imagePreviewUrl && (
+            {traceOverlay?.imagePreviewUrl && !traceOverlay.applied && (
               <img
                 src={traceOverlay.imagePreviewUrl}
                 alt="Auto-trace floor plan source"
@@ -410,39 +406,27 @@ export default function FloorEditorStep({
                   width: CANVAS_W,
                   height: CANVAS_H,
                   objectFit: "contain",
-                  background: "rgba(255,255,255,0.4)",
-                  opacity: 0.16,
+                  opacity: 0.28,
                   pointerEvents: "none",
                 }}
               />
             )}
 
-            {traceOverlay?.walls?.length > 0 && (
-              <svg
-                width={CANVAS_W}
-                height={CANVAS_H}
+            {traceOverlay?.wallMaskUrl && (
+              <img
+                src={traceOverlay.wallMaskUrl}
+                alt="Traced walls"
                 style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
+                  width: CANVAS_W,
+                  height: CANVAS_H,
+                  opacity: traceOverlay.applied ? 0.95 : 0.75,
                   pointerEvents: "none",
-                  opacity: 0.7,
+                  imageRendering: "pixelated",
                 }}
-              >
-                {traceOverlay.walls.map((wall, index) => (
-                  <line
-                    key={`trace-wall-${index}`}
-                    x1={wall.x1}
-                    y1={wall.y1}
-                    x2={wall.x2}
-                    y2={wall.y2}
-                    stroke={traceOverlay.applied ? "rgba(148,163,184,0.88)" : "#0ea5e9"}
-                    strokeWidth={traceOverlay.applied ? 1.4 : 1}
-                    strokeDasharray={traceOverlay.applied ? undefined : "4 3"}
-                    strokeLinecap="round"
-                  />
-                ))}
-              </svg>
+              />
             )}
 
             {!traceOverlay?.applied &&
@@ -455,11 +439,11 @@ export default function FloorEditorStep({
                   top: room.y,
                   width: room.w,
                   height: room.h,
-                  border: "1px dashed rgba(74,222,128,0.75)",
-                  background: "rgba(74,222,128,0.08)",
-                  borderRadius: 4,
+                  border: "1px solid rgba(74,222,128,0.9)",
+                  background: "rgba(74,222,128,0.14)",
                   pointerEvents: "none",
                   zIndex: 2,
+                  boxSizing: "border-box",
                 }}
               />
               ))}

@@ -3,11 +3,8 @@ export const CANVAS_H = 600;
 export const METERS_PER_PX = 0.1;
 export const GRID_SIZE = 20;
 export const MIN_ITEM_SIZE = 20;
-export const TRACE_CELL_SIZE = 6;
-export const TRACE_DARKNESS_THRESHOLD = 140;
-export const TRACE_MIN_ROOM_AREA_CELLS = 8;
-export const TRACE_MAX_ROOM_SUGGESTIONS = 60;
-export const TRACE_WALL_DILATION_PASSES = 2;
+export const TRACE_MIN_ROOM_SIZE_PX = 14;
+export const TRACE_MAX_ROOM_SUGGESTIONS = 250;
 export const DEFAULT_LAT = "45.3476";
 export const DEFAULT_LNG = "-75.7629";
 

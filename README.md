@@ -11,7 +11,7 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 - Undo/redo with action history
 - Copy/paste selected rooms with keyboard shortcuts
 - Room dimensions editable in meters with live pixel preview
-- Auto-trace walls and room suggestions from a floor-plan image
+- Auto-trace a floor-plan image: detects every enclosed room and the wall blueprint in one click
 - Multi-building and multi-floor support
 - Exports valid IMDF ZIP files containing all 5 required GeoJSON files
 - Setup checklist and export-readiness status to guide publish flow
@@ -91,10 +91,9 @@ Share this URL with anyone who needs to create IMDF files.
 - Optional: use **Upload Configuration (JSON)** to load a saved layout (disabled on GitHub Pages)
 
 ### Step 2: Floor Editor
-- **Drag** room types from the left palette onto the canvas
-- Optional: click **🪄 Auto-Trace from Image** to detect walls and room suggestions from a floor-plan image
-- Optional: click **+ Add Suggested Rooms** after tracing to place all suggested rooms instantly
-- After applying suggestions, the editor switches to a clean wall blueprint view (no green suggestion overlay)
+- **Drag** room types from the left palette onto the canvas, **or**
+- Click **🪄 Auto-Trace from Image** and pick a floor-plan image — the app detects every enclosed room and shows them as green outlines over the traced walls
+- Click **+ Add Detected Rooms** to turn every outline into an editable room in one step. The green overlay disappears and the wall blueprint (outer + interior walls) stays behind as a guide
 - **Click** a room to select it
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
@@ -108,13 +107,25 @@ Share this URL with anyone who needs to create IMDF files.
 - Switch floors with the tabs at the top
 - When ready, click **Ready? Open Export Tab →** (or the Export tab in the header)
 
+#### How Auto-Trace works
+- Every pixel is classified as wall / not-wall using an adaptive threshold; colored room fills are ignored so they never count as walls
+- Doorways and anti-aliasing breaks are sealed automatically (the closing radius is swept 1–12 px and the best pass wins)
+- Every enclosed region becomes a room; hallways, the exterior, and regions that swallow other rooms are filtered out
+- Rooms with a colored fill in the source image are typed **Room**; plain ones are typed **Office** — change types afterwards in the properties panel
+- Rooms are named `Room 1…N` in reading order (top-to-bottom, left-to-right); rename as needed
+
 #### Auto-Trace tips
-- Best results come from high-contrast floor-plan images (dark walls on a light background)
-- If the first pass finds walls but no rooms, the app automatically retries multiple sensitivity profiles
-- Trace overlays are per-floor and non-destructive: you can clear and re-run any time
-- Suggested rooms are editable after insertion (rename, resize, move, delete)
-- Wall outlines are merged into cleaner outer/interior blueprint lines after apply
-- Auto-trace creates a starting layout; review and refine before export
+- Crop the image tightly to the floor plan (no toolbars or sidebars) for the cleanest result
+- Higher-resolution source images give tighter room boundaries
+- Trace overlays are per-floor and non-destructive: click **Clear** and re-run any time
+- Auto-trace creates a starting layout; review names, types and sizes before export
+
+#### Testing the tracer on your own image (dev)
+```bash
+npx vite-node scripts/trace-harness.mjs plan.png
+npx vite-node scripts/trace-harness.mjs plan.png 120,80,900,600 debug.png   # optional crop x,y,w,h + debug PNG
+```
+The harness prints the room count and writes a debug PNG (walls in black, detected rooms in green).
 
 ### Keyboard Shortcuts
 
@@ -166,6 +177,8 @@ imdf-floor-plan-builder/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml        ← Auto-deploys to GitHub Pages
+├── scripts/
+│   └── trace-harness.mjs     ← Dev tool: run the tracer on a PNG from the CLI
 ├── src/
 │   ├── components/
 │   │   ├── AppHeader.jsx
@@ -204,11 +217,8 @@ imdf-floor-plan-builder/
 | `CANVAS_H` | `src/constants/editor.js` | `600` | Canvas height in pixels |
 | `METERS_PER_PX` | `src/constants/editor.js` | `0.1` | Scale: 1 pixel = 0.1 meters |
 | `GRID_SIZE` | `src/constants/editor.js` | `20` | Snap/grid spacing in pixels |
-| `TRACE_CELL_SIZE` | `src/constants/editor.js` | `6` | Pixel density used when sampling images for auto-trace |
-| `TRACE_DARKNESS_THRESHOLD` | `src/constants/editor.js` | `140` | Darkness cutoff for classifying wall pixels |
-| `TRACE_MIN_ROOM_AREA_CELLS` | `src/constants/editor.js` | `8` | Minimum enclosed area to become a room suggestion |
-| `TRACE_MAX_ROOM_SUGGESTIONS` | `src/constants/editor.js` | `60` | Maximum room suggestions added from one trace |
-| `TRACE_WALL_DILATION_PASSES` | `src/constants/editor.js` | `2` | Number of wall-expansion passes used to close tiny gaps before room detection |
+| `TRACE_MIN_ROOM_SIZE_PX` | `src/constants/editor.js` | `14` | Smallest width/height (px) an enclosed region needs to become a room |
+| `TRACE_MAX_ROOM_SUGGESTIONS` | `src/constants/editor.js` | `250` | Maximum rooms added from one trace |
 
 For larger buildings, increase `CANVAS_W`/`CANVAS_H` or decrease `METERS_PER_PX`.
 
