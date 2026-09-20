@@ -829,37 +829,86 @@ export default function IMDFBuilder() {
       });
 
       try {
-        const [traceResult, imagePreviewUrl] = await Promise.all([
-          traceFloorPlanImage(file, {
-            canvasW: CANVAS_W,
-            canvasH: CANVAS_H,
-            cellSize: TRACE_CELL_SIZE,
-            darknessThreshold: TRACE_DARKNESS_THRESHOLD,
-            minRoomAreaCells: TRACE_MIN_ROOM_AREA_CELLS,
-            maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
-            wallDilationPasses: TRACE_WALL_DILATION_PASSES,
-          }),
-          readFileAsDataUrl(file),
-        ]);
+        const imagePreviewPromise = readFileAsDataUrl(file);
+        const traceProfiles = [
+          {
+            label: "default",
+            params: {
+              canvasW: CANVAS_W,
+              canvasH: CANVAS_H,
+              cellSize: TRACE_CELL_SIZE,
+              darknessThreshold: TRACE_DARKNESS_THRESHOLD,
+              minRoomAreaCells: TRACE_MIN_ROOM_AREA_CELLS,
+              maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+              wallDilationPasses: TRACE_WALL_DILATION_PASSES,
+              minDarkSampleVotes: 2,
+            },
+          },
+          {
+            label: "fine-grid",
+            params: {
+              canvasW: CANVAS_W,
+              canvasH: CANVAS_H,
+              cellSize: Math.max(4, TRACE_CELL_SIZE - 1),
+              darknessThreshold: TRACE_DARKNESS_THRESHOLD + 12,
+              minRoomAreaCells: Math.max(2, Math.floor(TRACE_MIN_ROOM_AREA_CELLS * 0.75)),
+              maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+              wallDilationPasses: TRACE_WALL_DILATION_PASSES + 1,
+              minDarkSampleVotes: 1,
+            },
+          },
+          {
+            label: "relaxed",
+            params: {
+              canvasW: CANVAS_W,
+              canvasH: CANVAS_H,
+              cellSize: Math.max(4, TRACE_CELL_SIZE - 2),
+              darknessThreshold: TRACE_DARKNESS_THRESHOLD + 26,
+              minRoomAreaCells: Math.max(2, Math.floor(TRACE_MIN_ROOM_AREA_CELLS / 2)),
+              maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+              wallDilationPasses: TRACE_WALL_DILATION_PASSES + 2,
+              minDarkSampleVotes: 1,
+              minWallRun: 2,
+            },
+          },
+          {
+            label: "aggressive",
+            params: {
+              canvasW: CANVAS_W,
+              canvasH: CANVAS_H,
+              cellSize: 4,
+              darknessThreshold: TRACE_DARKNESS_THRESHOLD + 32,
+              minRoomAreaCells: 2,
+              maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+              wallDilationPasses: TRACE_WALL_DILATION_PASSES + 3,
+              minDarkSampleVotes: 1,
+              minWallRun: 2,
+              maxBoundaryRoomCoverage: 0.5,
+            },
+          },
+        ];
 
-        let finalTraceResult = traceResult;
-        let relaxedModeApplied = false;
-        if (traceResult.rooms.length === 0 && traceResult.walls.length > 0) {
-          const relaxedResult = await traceFloorPlanImage(file, {
-            canvasW: CANVAS_W,
-            canvasH: CANVAS_H,
-            cellSize: Math.max(5, TRACE_CELL_SIZE - 1),
-            darknessThreshold: TRACE_DARKNESS_THRESHOLD + 22,
-            minRoomAreaCells: Math.max(10, Math.floor(TRACE_MIN_ROOM_AREA_CELLS / 2)),
-            maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
-            wallDilationPasses: TRACE_WALL_DILATION_PASSES + 1,
-            minDarkSampleVotes: 1,
-          });
-          if (relaxedResult.rooms.length > traceResult.rooms.length) {
-            finalTraceResult = relaxedResult;
-            relaxedModeApplied = true;
+        let bestResult = null;
+        let bestProfileLabel = traceProfiles[0].label;
+        for (let i = 0; i < traceProfiles.length; i += 1) {
+          const profile = traceProfiles[i];
+          const traced = await traceFloorPlanImage(file, profile.params);
+          if (
+            !bestResult ||
+            traced.rooms.length > bestResult.rooms.length ||
+            (traced.rooms.length === bestResult.rooms.length && traced.walls.length > bestResult.walls.length)
+          ) {
+            bestResult = traced;
+            bestProfileLabel = profile.label;
+          }
+          if (traced.rooms.length >= 12) {
+            break;
           }
         }
+
+        const imagePreviewUrl = await imagePreviewPromise;
+        const finalTraceResult = bestResult ?? { walls: [], rooms: [] };
+        const relaxedModeApplied = bestProfileLabel !== "default";
 
         setTraceByLevel((prev) => ({
           ...prev,
@@ -868,13 +917,17 @@ export default function IMDFBuilder() {
             imagePreviewUrl,
             sourceName: file.name,
             relaxedModeApplied,
+            profile: bestProfileLabel,
           },
         }));
         setTraceStatus({
-          type: "success",
-          text: relaxedModeApplied
-            ? `Auto-trace complete (relaxed sensitivity): ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`
-            : `Auto-trace complete: ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`,
+          type: finalTraceResult.rooms.length > 0 ? "success" : "error",
+          text:
+            finalTraceResult.rooms.length > 0
+              ? relaxedModeApplied
+                ? `Auto-trace complete (${bestProfileLabel} sensitivity): ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`
+                : `Auto-trace complete: ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`
+              : `Auto-trace found walls but no rooms. Try a cropped floor-plan image focused tightly on room outlines.`,
         });
       } catch (error) {
         const message =

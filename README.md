@@ -109,7 +109,7 @@ Share this URL with anyone who needs to create IMDF files.
 
 #### Auto-Trace tips
 - Best results come from high-contrast floor-plan images (dark walls on a light background)
-- If the first pass finds walls but no rooms, the app automatically retries with relaxed sensitivity
+- If the first pass finds walls but no rooms, the app automatically retries multiple sensitivity profiles
 - Trace overlays are per-floor and non-destructive: you can clear and re-run any time
 - Suggested rooms are editable after insertion (rename, resize, move, delete)
 - Auto-trace creates a starting layout; review and refine before export
@@ -202,9 +202,9 @@ imdf-floor-plan-builder/
 | `CANVAS_H` | `src/constants/editor.js` | `600` | Canvas height in pixels |
 | `METERS_PER_PX` | `src/constants/editor.js` | `0.1` | Scale: 1 pixel = 0.1 meters |
 | `GRID_SIZE` | `src/constants/editor.js` | `20` | Snap/grid spacing in pixels |
-| `TRACE_CELL_SIZE` | `src/constants/editor.js` | `8` | Pixel density used when sampling images for auto-trace |
+| `TRACE_CELL_SIZE` | `src/constants/editor.js` | `6` | Pixel density used when sampling images for auto-trace |
 | `TRACE_DARKNESS_THRESHOLD` | `src/constants/editor.js` | `140` | Darkness cutoff for classifying wall pixels |
-| `TRACE_MIN_ROOM_AREA_CELLS` | `src/constants/editor.js` | `24` | Minimum enclosed area to become a room suggestion |
+| `TRACE_MIN_ROOM_AREA_CELLS` | `src/constants/editor.js` | `8` | Minimum enclosed area to become a room suggestion |
 | `TRACE_MAX_ROOM_SUGGESTIONS` | `src/constants/editor.js` | `60` | Maximum room suggestions added from one trace |
 | `TRACE_WALL_DILATION_PASSES` | `src/constants/editor.js` | `2` | Number of wall-expansion passes used to close tiny gaps before room detection |
 

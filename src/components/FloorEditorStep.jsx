@@ -167,7 +167,9 @@ export default function FloorEditorStep({
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
                 {traceOverlay.walls.length} walls · {traceOverlay.rooms.length} room suggestions
-                {traceOverlay.relaxedModeApplied ? " · relaxed sensitivity applied" : ""}
+                {traceOverlay.relaxedModeApplied
+                  ? ` · ${traceOverlay.profile || "relaxed"} sensitivity applied`
+                  : ""}
               </div>
               {traceOverlay.rooms.length === 0 && (
                 <div style={{ marginTop: 6, color: "#fbbf24" }}>

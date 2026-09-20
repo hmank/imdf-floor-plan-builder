@@ -106,6 +106,7 @@ export function analyzeOccupancyGrid(grid, options = {}) {
   const maxWallSegments = Math.max(20, options.maxWallSegments ?? 700);
   const wallDilationPasses = Math.max(0, options.wallDilationPasses ?? TRACE_WALL_DILATION_PASSES);
   const boundsPaddingCells = Math.max(0, options.boundsPaddingCells ?? 2);
+  const maxBoundaryRoomCoverage = Math.min(0.95, Math.max(0.1, options.maxBoundaryRoomCoverage ?? 0.38));
 
   const cellW = canvasW / cols;
   const cellH = canvasH / rows;
@@ -135,6 +136,8 @@ export function analyzeOccupancyGrid(grid, options = {}) {
     minY: Math.max(0, bounds.minY - boundsPaddingCells),
     maxY: Math.min(rows - 1, bounds.maxY + boundsPaddingCells),
   };
+  const boundedAreaCells =
+    (paddedBounds.maxX - paddedBounds.minX + 1) * (paddedBounds.maxY - paddedBounds.minY + 1);
 
   for (let y = 0; y < rows; y += 1) {
     let x = 0;
@@ -206,6 +209,8 @@ export function analyzeOccupancyGrid(grid, options = {}) {
       let minY = y;
       let maxY = y;
       let touchesBoundary = false;
+      let boundaryTouchCells = 0;
+      let wallAdjacencyCount = 0;
 
       while (head < queue.length) {
         const [cx, cy] = queue[head];
@@ -222,6 +227,16 @@ export function analyzeOccupancyGrid(grid, options = {}) {
           cy === paddedBounds.maxY
         ) {
           touchesBoundary = true;
+          boundaryTouchCells += 1;
+        }
+
+        if (cx > paddedBounds.minX && processedGrid[cy][cx - 1]) wallAdjacencyCount += 1;
+        if (cx < paddedBounds.maxX && processedGrid[cy][cx + 1]) wallAdjacencyCount += 1;
+        if (cy > paddedBounds.minY && processedGrid[cy - 1][cx]) wallAdjacencyCount += 1;
+        if (cy < paddedBounds.maxY && processedGrid[cy + 1][cx]) wallAdjacencyCount += 1;
+
+        if (wallAdjacencyCount > areaCells * 4) {
+          wallAdjacencyCount = areaCells * 4;
         }
 
         neighbors.forEach(([dx, dy]) => {
@@ -242,8 +257,21 @@ export function analyzeOccupancyGrid(grid, options = {}) {
         });
       }
 
-      if (touchesBoundary || areaCells < minRoomAreaCells) {
+      if (areaCells < minRoomAreaCells) {
         continue;
+      }
+
+      if (touchesBoundary) {
+        const coverage = areaCells / Math.max(1, boundedAreaCells);
+        const wallAdjacencyRatio = wallAdjacencyCount / Math.max(1, areaCells * 4);
+        const boundaryLeakThreshold = Math.max(4, Math.round(Math.sqrt(areaCells) * 0.55));
+        if (
+          coverage > maxBoundaryRoomCoverage ||
+          boundaryTouchCells > boundaryLeakThreshold ||
+          wallAdjacencyRatio < 0.12
+        ) {
+          continue;
+        }
       }
 
       const widthCells = maxX - minX + 1;
