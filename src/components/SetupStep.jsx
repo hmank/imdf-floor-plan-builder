@@ -68,7 +68,7 @@ export default function SetupStep({
           </div>
           <div style={{ display: "grid", gap: 8, fontSize: 12, color: "#94a3b8" }}>
             <div>1. Complete required building details (name + valid latitude/longitude).</div>
-            <div>2. Ensure every floor has a name and then place rooms in the editor.</div>
+            <div>2. Ensure every floor has a name, then place rooms manually or with Auto-Trace from Image.</div>
             <div>3. Use Export step to download IMDF ZIP when building is marked ready.</div>
           </div>
           <div style={{ marginTop: 12, fontSize: 12, color: "#cbd5e1" }}>

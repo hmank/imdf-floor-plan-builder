@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { CANVAS_H, CANVAS_W, GRID_SIZE, METERS_PER_PX } from "../constants/editor";
 import { chip, inp, lbl } from "../styles/ui";
 
@@ -42,8 +43,23 @@ export default function FloorEditorStep({
   onDeleteSelected,
   onUpdateItem,
   onDeleteItem,
+  traceOverlay,
+  traceStatus,
+  onAutoTraceImage,
+  onApplyTraceSuggestions,
+  onClearTraceOverlay,
   onGoToExport,
 }) {
+  const traceInputRef = useRef(null);
+  const traceStatusColor =
+    traceStatus?.type === "error"
+      ? "#fca5a5"
+      : traceStatus?.type === "progress"
+        ? "#fbbf24"
+        : traceStatus?.type === "success"
+          ? "#4ade80"
+          : "#94a3b8";
+
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
       <div
@@ -105,6 +121,91 @@ export default function FloorEditorStep({
             />
           </div>
         ))}
+        <div
+          style={{
+            marginTop: 10,
+            border: "1px solid #334155",
+            borderRadius: 10,
+            background: "linear-gradient(180deg,rgba(15,23,42,0.65),rgba(12,12,20,0.5))",
+            padding: 10,
+          }}
+        >
+          <input
+            ref={traceInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/bmp"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              onAutoTraceImage(file);
+              e.target.value = "";
+            }}
+          />
+          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: "0.08em" }}>
+            AUTO-TRACE FLOOR PLAN
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>
+            Upload a floor-plan image to trace wall outlines and generate editable room suggestions.
+          </div>
+          <button
+            onClick={() => traceInputRef.current?.click()}
+            style={{
+              ...chip,
+              width: "100%",
+              marginTop: 8,
+              border: "1px solid #1d4ed8",
+              color: "#bfdbfe",
+              background: "rgba(37,99,235,0.18)",
+              padding: "7px 10px",
+            }}
+            title="Upload floor-plan image and auto-trace walls"
+          >
+            🪄 Auto-Trace from Image
+          </button>
+          {traceOverlay && (
+            <div style={{ marginTop: 8, fontSize: 11, color: "#94a3b8", lineHeight: 1.45 }}>
+              <div>Source: {traceOverlay.sourceName}</div>
+              <div>
+                {traceOverlay.walls.length} walls · {traceOverlay.rooms.length} room suggestions
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button
+                  onClick={onApplyTraceSuggestions}
+                  disabled={traceOverlay.rooms.length === 0}
+                  style={{
+                    ...chip,
+                    flex: 1,
+                    border: "1px solid #166534",
+                    color: traceOverlay.rooms.length > 0 ? "#86efac" : "#475569",
+                    background: traceOverlay.rooms.length > 0 ? "rgba(34,197,94,0.15)" : "transparent",
+                    cursor: traceOverlay.rooms.length > 0 ? "pointer" : "not-allowed",
+                    padding: "6px 8px",
+                    textAlign: "center",
+                  }}
+                >
+                  + Add Suggested Rooms
+                </button>
+                <button
+                  onClick={onClearTraceOverlay}
+                  style={{
+                    ...chip,
+                    border: "1px solid #7f1d1d",
+                    color: "#fca5a5",
+                    background: "rgba(127,29,29,0.2)",
+                    padding: "6px 8px",
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+          {traceStatus && (
+            <div style={{ marginTop: 8, fontSize: 11, color: traceStatusColor, lineHeight: 1.4 }}>
+              {traceStatus.text}
+            </div>
+          )}
+        </div>
         <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px solid #1e293b" }}>
           <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
             <div>
@@ -282,6 +383,69 @@ export default function FloorEditorStep({
               ))}
             </svg>
 
+            {traceOverlay?.imagePreviewUrl && (
+              <img
+                src={traceOverlay.imagePreviewUrl}
+                alt="Auto-trace floor plan source"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: CANVAS_W,
+                  height: CANVAS_H,
+                  objectFit: "contain",
+                  background: "rgba(255,255,255,0.4)",
+                  opacity: 0.16,
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+
+            {traceOverlay?.walls?.length > 0 && (
+              <svg
+                width={CANVAS_W}
+                height={CANVAS_H}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  pointerEvents: "none",
+                  opacity: 0.7,
+                }}
+              >
+                {traceOverlay.walls.map((wall, index) => (
+                  <line
+                    key={`trace-wall-${index}`}
+                    x1={wall.x1}
+                    y1={wall.y1}
+                    x2={wall.x2}
+                    y2={wall.y2}
+                    stroke="#0ea5e9"
+                    strokeWidth={1}
+                    strokeDasharray={wall.orientation === "horizontal" ? "4 3" : "3 3"}
+                  />
+                ))}
+              </svg>
+            )}
+
+            {traceOverlay?.rooms?.map((room, index) => (
+              <div
+                key={`trace-room-${index}`}
+                style={{
+                  position: "absolute",
+                  left: room.x,
+                  top: room.y,
+                  width: room.w,
+                  height: room.h,
+                  border: "1px dashed rgba(74,222,128,0.75)",
+                  background: "rgba(74,222,128,0.08)",
+                  borderRadius: 4,
+                  pointerEvents: "none",
+                  zIndex: 2,
+                }}
+              />
+            ))}
+
             {alignmentGuides.length > 0 && (
               <svg
                 width={CANVAS_W}
@@ -336,7 +500,9 @@ export default function FloorEditorStep({
                 <div style={{ textAlign: "center", color: "#334155" }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>📐</div>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>Drag rooms from the left panel</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>Drop them here to build your floor plan</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>
+                    Drop them here or use Auto-Trace from Image to bootstrap room placement
+                  </div>
                 </div>
               </div>
             )}
@@ -363,7 +529,7 @@ export default function FloorEditorStep({
                     alignItems: "center",
                     justifyContent: "center",
                     boxShadow: isSelected ? `0 0 20px ${roomType.color}30` : "none",
-                    zIndex: isSelected ? 10 : 1,
+                    zIndex: isSelected ? 10 : 6,
                   }}
                 >
                   <span style={{ fontSize: Math.min(item.w, item.h) > 40 ? 18 : 12, lineHeight: 1 }}>

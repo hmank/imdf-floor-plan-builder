@@ -11,6 +11,7 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 - Undo/redo with action history
 - Copy/paste selected rooms with keyboard shortcuts
 - Room dimensions editable in meters with live pixel preview
+- Auto-trace walls and room suggestions from a floor-plan image
 - Multi-building and multi-floor support
 - Exports valid IMDF ZIP files containing all 5 required GeoJSON files
 - Setup checklist and export-readiness status to guide publish flow
@@ -91,6 +92,8 @@ Share this URL with anyone who needs to create IMDF files.
 
 ### Step 2: Floor Editor
 - **Drag** room types from the left palette onto the canvas
+- Optional: click **🪄 Auto-Trace from Image** to detect walls and room suggestions from a floor-plan image
+- Optional: click **+ Add Suggested Rooms** after tracing to place all suggested rooms instantly
 - **Click** a room to select it
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
@@ -103,6 +106,12 @@ Share this URL with anyone who needs to create IMDF files.
 - Enter **Width (m)** and **Length (m)** directly; corresponding pixel values are shown in brackets
 - Switch floors with the tabs at the top
 - When ready, click **Ready? Open Export Tab →** (or the Export tab in the header)
+
+#### Auto-Trace tips
+- Best results come from high-contrast floor-plan images (dark walls on a light background)
+- Trace overlays are per-floor and non-destructive: you can clear and re-run any time
+- Suggested rooms are editable after insertion (rename, resize, move, delete)
+- Auto-trace creates a starting layout; review and refine before export
 
 ### Keyboard Shortcuts
 
@@ -167,6 +176,7 @@ imdf-floor-plan-builder/
 │   ├── styles/
 │   │   └── ui.js
 │   ├── utils/
+│   │   ├── autoTrace.js
 │   │   ├── editorMath.js
 │   │   ├── geo.js
 │   │   ├── history.js
@@ -191,6 +201,10 @@ imdf-floor-plan-builder/
 | `CANVAS_H` | `src/constants/editor.js` | `600` | Canvas height in pixels |
 | `METERS_PER_PX` | `src/constants/editor.js` | `0.1` | Scale: 1 pixel = 0.1 meters |
 | `GRID_SIZE` | `src/constants/editor.js` | `20` | Snap/grid spacing in pixels |
+| `TRACE_CELL_SIZE` | `src/constants/editor.js` | `8` | Pixel density used when sampling images for auto-trace |
+| `TRACE_DARKNESS_THRESHOLD` | `src/constants/editor.js` | `140` | Darkness cutoff for classifying wall pixels |
+| `TRACE_MIN_ROOM_AREA_CELLS` | `src/constants/editor.js` | `24` | Minimum enclosed area to become a room suggestion |
+| `TRACE_MAX_ROOM_SUGGESTIONS` | `src/constants/editor.js` | `60` | Maximum room suggestions added from one trace |
 
 For larger buildings, increase `CANVAS_W`/`CANVAS_H` or decrease `METERS_PER_PX`.
 
@@ -214,4 +228,4 @@ MIT
 
 ## Contributing
 
-PRs welcome! Current roadmap ideas include floor plan image overlay, Overpass API footprint fetch, and Microsoft Graph PlaceId integration.
+PRs welcome! Current roadmap ideas include configurable auto-trace sensitivity controls, Overpass API footprint fetch, and Microsoft Graph PlaceId integration.

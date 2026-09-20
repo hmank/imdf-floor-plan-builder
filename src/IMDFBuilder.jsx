@@ -3,10 +3,20 @@ import AppHeader from "./components/AppHeader";
 import ExportStep from "./components/ExportStep";
 import FloorEditorStep from "./components/FloorEditorStep";
 import SetupStep from "./components/SetupStep";
-import { CANVAS_H, CANVAS_W, CAT_MAP, ROOM_TYPES } from "./constants/editor";
+import {
+  CANVAS_H,
+  CANVAS_W,
+  CAT_MAP,
+  ROOM_TYPES,
+  TRACE_CELL_SIZE,
+  TRACE_DARKNESS_THRESHOLD,
+  TRACE_MAX_ROOM_SUGGESTIONS,
+  TRACE_MIN_ROOM_AREA_CELLS,
+} from "./constants/editor";
 import { createBuilding, createItemFromCategory, createLevel, createPastedItem } from "./state/factories";
 import { alignRectToItems, clampRectToCanvas, snapValue } from "./utils/editorMath";
 import { createHistoryState, commitFromSnapshot, redoHistory, undoHistory, updateHistoryPresent } from "./utils/history";
+import { traceFloorPlanImage } from "./utils/autoTrace";
 import { generateImdfFiles } from "./utils/imdfExport";
 import { uid } from "./utils/uid";
 import { buildZip } from "./utils/zip";
@@ -84,6 +94,15 @@ function parseNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(new Error("Auto-trace could not preview this image."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function normalizeUploadedConfiguration(rawConfig) {
   const rawBuildings = Array.isArray(rawConfig)
     ? rawConfig
@@ -159,6 +178,8 @@ export default function IMDFBuilder() {
   const [clipboardItem, setClipboardItem] = useState(null);
   const [exportStatus, setExportStatus] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
+  const [traceByLevel, setTraceByLevel] = useState({});
+  const [traceStatus, setTraceStatus] = useState(null);
 
   const canvasRef = useRef(null);
   const gestureSnapshotRef = useRef(null);
@@ -173,6 +194,8 @@ export default function IMDFBuilder() {
   const level = levels[li];
   const items = level?.items || [];
   const selectedItem = items.find((item) => item.id === selected) || null;
+  const activeTraceKey = `${bldg?.id ?? bi}:${level?.id ?? li}`;
+  const activeTrace = traceByLevel[activeTraceKey] || null;
 
   const totalItems = useMemo(
     () =>
@@ -786,6 +809,102 @@ export default function IMDFBuilder() {
     [applyBuildingsUpdate, uploadEnabled]
   );
 
+  const runAutoTraceFromImage = useCallback(
+    async (file) => {
+      if (!file) {
+        return;
+      }
+      if (!level) {
+        setTraceStatus({
+          type: "error",
+          text: "Select a floor before running auto-trace.",
+        });
+        return;
+      }
+
+      setTraceStatus({
+        type: "progress",
+        text: `Auto-tracing ${file.name}...`,
+      });
+
+      try {
+        const [traceResult, imagePreviewUrl] = await Promise.all([
+          traceFloorPlanImage(file, {
+            canvasW: CANVAS_W,
+            canvasH: CANVAS_H,
+            cellSize: TRACE_CELL_SIZE,
+            darknessThreshold: TRACE_DARKNESS_THRESHOLD,
+            minRoomAreaCells: TRACE_MIN_ROOM_AREA_CELLS,
+            maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+          }),
+          readFileAsDataUrl(file),
+        ]);
+
+        setTraceByLevel((prev) => ({
+          ...prev,
+          [activeTraceKey]: {
+            ...traceResult,
+            imagePreviewUrl,
+            sourceName: file.name,
+          },
+        }));
+        setTraceStatus({
+          type: "success",
+          text: `Auto-trace complete: ${traceResult.walls.length} walls and ${traceResult.rooms.length} room suggestions.`,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Auto-trace failed while reading the floor-plan image.";
+        setTraceStatus({ type: "error", text: message });
+      }
+    },
+    [activeTraceKey, level]
+  );
+
+  const applyAutoTraceSuggestions = useCallback(() => {
+    if (!activeTrace || activeTrace.rooms.length === 0) {
+      setTraceStatus({
+        type: "error",
+        text: "No room suggestions available yet. Run auto-trace first.",
+      });
+      return;
+    }
+
+    const generatedItems = activeTrace.rooms.map((roomRect, index) => {
+      const nextItem = createItemFromCategory("room", roomRect.x, roomRect.y);
+      return {
+        ...nextItem,
+        name: `Auto Room ${index + 1}`,
+        w: roomRect.w,
+        h: roomRect.h,
+      };
+    });
+
+    setActiveItems((prevItems) => [...prevItems, ...generatedItems], {
+      label: "Apply auto-trace suggestions",
+    });
+    setSelected(generatedItems[0]?.id ?? null);
+    setTraceStatus({
+      type: "success",
+      text: `Added ${generatedItems.length} suggested rooms to this floor.`,
+    });
+  }, [activeTrace, setActiveItems]);
+
+  const clearAutoTraceOverlay = useCallback(() => {
+    if (!traceByLevel[activeTraceKey]) {
+      return;
+    }
+    setTraceByLevel((prev) => {
+      const next = { ...prev };
+      delete next[activeTraceKey];
+      return next;
+    });
+    setTraceStatus({
+      type: "success",
+      text: "Cleared auto-trace overlay for this floor.",
+    });
+  }, [activeTraceKey, traceByLevel]);
+
   return (
     <div
       style={{
@@ -857,6 +976,11 @@ export default function IMDFBuilder() {
           onDeleteSelected={() => setSelected(null)}
           onUpdateItem={(id, patch) => updateItem(id, patch, { label: "Edit room properties" })}
           onDeleteItem={deleteItem}
+          traceOverlay={activeTrace}
+          traceStatus={traceStatus}
+          onAutoTraceImage={runAutoTraceFromImage}
+          onApplyTraceSuggestions={applyAutoTraceSuggestions}
+          onClearTraceOverlay={clearAutoTraceOverlay}
           onGoToExport={() => setStep(2)}
         />
       )}
