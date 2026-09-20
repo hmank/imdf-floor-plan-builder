@@ -27,8 +27,8 @@ describe("auto-trace grid analysis", () => {
 
     expect(traced.walls.length).toBeGreaterThan(0);
     expect(traced.rooms.length).toBe(1);
-    expect(traced.rooms[0].w).toBeGreaterThan(80);
-    expect(traced.rooms[0].h).toBeGreaterThan(80);
+    expect(traced.rooms[0].w).toBeGreaterThan(20);
+    expect(traced.rooms[0].h).toBeGreaterThan(20);
   });
 
   it("does not suggest open areas that leak to the boundary", () => {
@@ -39,5 +39,38 @@ describe("auto-trace grid analysis", () => {
       minRoomAreaCells: 4,
     });
     expect(traced.rooms).toEqual([]);
+  });
+
+  it("can recover rooms when outer walls have tiny gaps", () => {
+    const grid = createGrid(14, 14, false);
+    for (let x = 3; x <= 10; x += 1) {
+      grid[3][x] = true;
+      grid[10][x] = true;
+    }
+    for (let y = 3; y <= 10; y += 1) {
+      grid[y][3] = true;
+      grid[y][10] = true;
+    }
+
+    // Simulate a doorway/gap that would otherwise leak the region.
+    grid[6][3] = false;
+
+    const strict = analyzeOccupancyGrid(grid, {
+      canvasW: 280,
+      canvasH: 280,
+      minWallRun: 2,
+      minRoomAreaCells: 4,
+      wallDilationPasses: 0,
+    });
+    const relaxed = analyzeOccupancyGrid(grid, {
+      canvasW: 280,
+      canvasH: 280,
+      minWallRun: 2,
+      minRoomAreaCells: 4,
+      wallDilationPasses: 2,
+    });
+
+    expect(strict.rooms.length).toBe(0);
+    expect(relaxed.rooms.length).toBeGreaterThan(0);
   });
 });

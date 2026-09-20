@@ -12,6 +12,7 @@ import {
   TRACE_DARKNESS_THRESHOLD,
   TRACE_MAX_ROOM_SUGGESTIONS,
   TRACE_MIN_ROOM_AREA_CELLS,
+  TRACE_WALL_DILATION_PASSES,
 } from "./constants/editor";
 import { createBuilding, createItemFromCategory, createLevel, createPastedItem } from "./state/factories";
 import { alignRectToItems, clampRectToCanvas, snapValue } from "./utils/editorMath";
@@ -836,21 +837,44 @@ export default function IMDFBuilder() {
             darknessThreshold: TRACE_DARKNESS_THRESHOLD,
             minRoomAreaCells: TRACE_MIN_ROOM_AREA_CELLS,
             maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+            wallDilationPasses: TRACE_WALL_DILATION_PASSES,
           }),
           readFileAsDataUrl(file),
         ]);
 
+        let finalTraceResult = traceResult;
+        let relaxedModeApplied = false;
+        if (traceResult.rooms.length === 0 && traceResult.walls.length > 0) {
+          const relaxedResult = await traceFloorPlanImage(file, {
+            canvasW: CANVAS_W,
+            canvasH: CANVAS_H,
+            cellSize: Math.max(5, TRACE_CELL_SIZE - 1),
+            darknessThreshold: TRACE_DARKNESS_THRESHOLD + 22,
+            minRoomAreaCells: Math.max(10, Math.floor(TRACE_MIN_ROOM_AREA_CELLS / 2)),
+            maxRoomSuggestions: TRACE_MAX_ROOM_SUGGESTIONS,
+            wallDilationPasses: TRACE_WALL_DILATION_PASSES + 1,
+            minDarkSampleVotes: 1,
+          });
+          if (relaxedResult.rooms.length > traceResult.rooms.length) {
+            finalTraceResult = relaxedResult;
+            relaxedModeApplied = true;
+          }
+        }
+
         setTraceByLevel((prev) => ({
           ...prev,
           [activeTraceKey]: {
-            ...traceResult,
+            ...finalTraceResult,
             imagePreviewUrl,
             sourceName: file.name,
+            relaxedModeApplied,
           },
         }));
         setTraceStatus({
           type: "success",
-          text: `Auto-trace complete: ${traceResult.walls.length} walls and ${traceResult.rooms.length} room suggestions.`,
+          text: relaxedModeApplied
+            ? `Auto-trace complete (relaxed sensitivity): ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`
+            : `Auto-trace complete: ${finalTraceResult.walls.length} walls and ${finalTraceResult.rooms.length} room suggestions.`,
         });
       } catch (error) {
         const message =

@@ -167,7 +167,13 @@ export default function FloorEditorStep({
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
                 {traceOverlay.walls.length} walls · {traceOverlay.rooms.length} room suggestions
+                {traceOverlay.relaxedModeApplied ? " · relaxed sensitivity applied" : ""}
               </div>
+              {traceOverlay.rooms.length === 0 && (
+                <div style={{ marginTop: 6, color: "#fbbf24" }}>
+                  No enclosed rooms detected yet. Try cropping to the floor map area and re-run auto-trace.
+                </div>
+              )}
               <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
                 <button
                   onClick={onApplyTraceSuggestions}

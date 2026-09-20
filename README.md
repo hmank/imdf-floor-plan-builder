@@ -109,6 +109,7 @@ Share this URL with anyone who needs to create IMDF files.
 
 #### Auto-Trace tips
 - Best results come from high-contrast floor-plan images (dark walls on a light background)
+- If the first pass finds walls but no rooms, the app automatically retries with relaxed sensitivity
 - Trace overlays are per-floor and non-destructive: you can clear and re-run any time
 - Suggested rooms are editable after insertion (rename, resize, move, delete)
 - Auto-trace creates a starting layout; review and refine before export
@@ -205,6 +206,7 @@ imdf-floor-plan-builder/
 | `TRACE_DARKNESS_THRESHOLD` | `src/constants/editor.js` | `140` | Darkness cutoff for classifying wall pixels |
 | `TRACE_MIN_ROOM_AREA_CELLS` | `src/constants/editor.js` | `24` | Minimum enclosed area to become a room suggestion |
 | `TRACE_MAX_ROOM_SUGGESTIONS` | `src/constants/editor.js` | `60` | Maximum room suggestions added from one trace |
+| `TRACE_WALL_DILATION_PASSES` | `src/constants/editor.js` | `2` | Number of wall-expansion passes used to close tiny gaps before room detection |
 
 For larger buildings, increase `CANVAS_W`/`CANVAS_H` or decrease `METERS_PER_PX`.
 
