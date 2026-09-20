@@ -25,6 +25,89 @@ function wallLength(wall) {
   return Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1);
 }
 
+function mergeIntervals(intervals, gapTolerance = 0) {
+  if (intervals.length === 0) {
+    return [];
+  }
+  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+  const merged = [sorted[0].slice()];
+
+  for (let i = 1; i < sorted.length; i += 1) {
+    const [start, end] = sorted[i];
+    const last = merged[merged.length - 1];
+    if (start <= last[1] + gapTolerance) {
+      last[1] = Math.max(last[1], end);
+    } else {
+      merged.push([start, end]);
+    }
+  }
+  return merged;
+}
+
+function createWallOutlineSegments(grid) {
+  const rows = grid.length;
+  const cols = grid[0].length;
+  const horizontalMap = new Map();
+  const verticalMap = new Map();
+
+  const pushHorizontal = (y, x1, x2) => {
+    const existing = horizontalMap.get(y) || [];
+    existing.push([x1, x2]);
+    horizontalMap.set(y, existing);
+  };
+  const pushVertical = (x, y1, y2) => {
+    const existing = verticalMap.get(x) || [];
+    existing.push([y1, y2]);
+    verticalMap.set(x, existing);
+  };
+
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      if (!grid[y][x]) {
+        continue;
+      }
+      if (y === 0 || !grid[y - 1][x]) {
+        pushHorizontal(y, x, x + 1);
+      }
+      if (y === rows - 1 || !grid[y + 1][x]) {
+        pushHorizontal(y + 1, x, x + 1);
+      }
+      if (x === 0 || !grid[y][x - 1]) {
+        pushVertical(x, y, y + 1);
+      }
+      if (x === cols - 1 || !grid[y][x + 1]) {
+        pushVertical(x + 1, y, y + 1);
+      }
+    }
+  }
+
+  const segments = [];
+  horizontalMap.forEach((intervals, y) => {
+    mergeIntervals(intervals).forEach(([x1, x2]) => {
+      segments.push({
+        orientation: "horizontal",
+        x1,
+        y1: y,
+        x2,
+        y2: y,
+      });
+    });
+  });
+  verticalMap.forEach((intervals, x) => {
+    mergeIntervals(intervals).forEach(([y1, y2]) => {
+      segments.push({
+        orientation: "vertical",
+        x1: x,
+        y1,
+        x2: x,
+        y2,
+      });
+    });
+  });
+
+  return segments;
+}
+
 function dilateWallGrid(grid, passes = 1) {
   let current = grid.map((row) => [...row]);
   const rows = current.length;
@@ -99,18 +182,17 @@ export function analyzeOccupancyGrid(grid, options = {}) {
   const canvasW = options.canvasW ?? CANVAS_W;
   const canvasH = options.canvasH ?? CANVAS_H;
   const minItemSize = options.minItemSize ?? MIN_ITEM_SIZE;
-  const minWallRun = Math.max(2, options.minWallRun ?? 3);
   const minRoomAreaCells = Math.max(4, options.minRoomAreaCells ?? TRACE_MIN_ROOM_AREA_CELLS);
   const maxRoomSuggestions = Math.max(1, options.maxRoomSuggestions ?? TRACE_MAX_ROOM_SUGGESTIONS);
   const maxRoomAspectRatio = Math.max(1, options.maxRoomAspectRatio ?? 5);
   const maxWallSegments = Math.max(20, options.maxWallSegments ?? 700);
+  const minWallLengthPx = Math.max(4, options.minWallLengthPx ?? 14);
   const wallDilationPasses = Math.max(0, options.wallDilationPasses ?? TRACE_WALL_DILATION_PASSES);
   const boundsPaddingCells = Math.max(0, options.boundsPaddingCells ?? 2);
   const maxBoundaryRoomCoverage = Math.min(0.95, Math.max(0.1, options.maxBoundaryRoomCoverage ?? 0.38));
 
   const cellW = canvasW / cols;
   const cellH = canvasH / rows;
-  const walls = [];
   const processedGrid = dilateWallGrid(grid, wallDilationPasses);
   const bounds = findWallBounds(processedGrid);
 
@@ -130,6 +212,16 @@ export function analyzeOccupancyGrid(grid, options = {}) {
     };
   }
 
+  const walls = createWallOutlineSegments(processedGrid)
+    .map((segment) => ({
+      orientation: segment.orientation,
+      x1: Math.round(segment.x1 * cellW),
+      y1: Math.round(segment.y1 * cellH),
+      x2: Math.round(segment.x2 * cellW),
+      y2: Math.round(segment.y2 * cellH),
+    }))
+    .filter((wall) => wallLength(wall) >= minWallLengthPx);
+
   const paddedBounds = {
     minX: Math.max(0, bounds.minX - boundsPaddingCells),
     maxX: Math.min(cols - 1, bounds.maxX + boundsPaddingCells),
@@ -138,52 +230,6 @@ export function analyzeOccupancyGrid(grid, options = {}) {
   };
   const boundedAreaCells =
     (paddedBounds.maxX - paddedBounds.minX + 1) * (paddedBounds.maxY - paddedBounds.minY + 1);
-
-  for (let y = 0; y < rows; y += 1) {
-    let x = 0;
-    while (x < cols) {
-      if (!processedGrid[y][x]) {
-        x += 1;
-        continue;
-      }
-      const start = x;
-      while (x < cols && processedGrid[y][x]) {
-        x += 1;
-      }
-      if (x - start >= minWallRun) {
-        walls.push({
-          orientation: "horizontal",
-          x1: Math.round(start * cellW),
-          y1: Math.round((y + 0.5) * cellH),
-          x2: Math.round(x * cellW),
-          y2: Math.round((y + 0.5) * cellH),
-        });
-      }
-    }
-  }
-
-  for (let x = 0; x < cols; x += 1) {
-    let y = 0;
-    while (y < rows) {
-      if (!processedGrid[y][x]) {
-        y += 1;
-        continue;
-      }
-      const start = y;
-      while (y < rows && processedGrid[y][x]) {
-        y += 1;
-      }
-      if (y - start >= minWallRun) {
-        walls.push({
-          orientation: "vertical",
-          x1: Math.round((x + 0.5) * cellW),
-          y1: Math.round(start * cellH),
-          x2: Math.round((x + 0.5) * cellW),
-          y2: Math.round(y * cellH),
-        });
-      }
-    }
-  }
 
   const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
   const roomCandidates = [];

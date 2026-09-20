@@ -918,6 +918,7 @@ export default function IMDFBuilder() {
             sourceName: file.name,
             relaxedModeApplied,
             profile: bestProfileLabel,
+            applied: false,
           },
         }));
         setTraceStatus({
@@ -961,11 +962,20 @@ export default function IMDFBuilder() {
       label: "Apply auto-trace suggestions",
     });
     setSelected(generatedItems[0]?.id ?? null);
+    setTraceByLevel((prev) => ({
+      ...prev,
+      [activeTraceKey]: {
+        ...activeTrace,
+        rooms: [],
+        applied: true,
+        appliedRoomCount: generatedItems.length,
+      },
+    }));
     setTraceStatus({
       type: "success",
-      text: `Added ${generatedItems.length} suggested rooms to this floor.`,
+      text: `Added ${generatedItems.length} suggested rooms and switched to wall blueprint view.`,
     });
-  }, [activeTrace, setActiveItems]);
+  }, [activeTrace, activeTraceKey, setActiveItems]);
 
   const clearAutoTraceOverlay = useCallback(() => {
     if (!traceByLevel[activeTraceKey]) {

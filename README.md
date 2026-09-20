@@ -94,6 +94,7 @@ Share this URL with anyone who needs to create IMDF files.
 - **Drag** room types from the left palette onto the canvas
 - Optional: click **🪄 Auto-Trace from Image** to detect walls and room suggestions from a floor-plan image
 - Optional: click **+ Add Suggested Rooms** after tracing to place all suggested rooms instantly
+- After applying suggestions, the editor switches to a clean wall blueprint view (no green suggestion overlay)
 - **Click** a room to select it
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
@@ -112,6 +113,7 @@ Share this URL with anyone who needs to create IMDF files.
 - If the first pass finds walls but no rooms, the app automatically retries multiple sensitivity profiles
 - Trace overlays are per-floor and non-destructive: you can clear and re-run any time
 - Suggested rooms are editable after insertion (rename, resize, move, delete)
+- Wall outlines are merged into cleaner outer/interior blueprint lines after apply
 - Auto-trace creates a starting layout; review and refine before export
 
 ### Keyboard Shortcuts

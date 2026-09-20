@@ -166,12 +166,20 @@ export default function FloorEditorStep({
             <div style={{ marginTop: 8, fontSize: 11, color: "#94a3b8", lineHeight: 1.45 }}>
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
-                {traceOverlay.walls.length} walls · {traceOverlay.rooms.length} room suggestions
+                {traceOverlay.walls.length} walls ·{" "}
+                {traceOverlay.applied
+                  ? `${traceOverlay.appliedRoomCount || 0} suggestions applied`
+                  : `${traceOverlay.rooms.length} room suggestions`}
                 {traceOverlay.relaxedModeApplied
                   ? ` · ${traceOverlay.profile || "relaxed"} sensitivity applied`
                   : ""}
               </div>
-              {traceOverlay.rooms.length === 0 && (
+              {traceOverlay.applied && (
+                <div style={{ marginTop: 6, color: "#86efac" }}>
+                  Blueprint mode: outer and interior walls are now shown without suggestion overlays.
+                </div>
+              )}
+              {!traceOverlay.applied && traceOverlay.rooms.length === 0 && (
                 <div style={{ marginTop: 6, color: "#fbbf24" }}>
                   No enclosed rooms detected yet. Try cropping to the floor map area and re-run auto-trace.
                 </div>
@@ -428,15 +436,17 @@ export default function FloorEditorStep({
                     y1={wall.y1}
                     x2={wall.x2}
                     y2={wall.y2}
-                    stroke="#0ea5e9"
-                    strokeWidth={1}
-                    strokeDasharray={wall.orientation === "horizontal" ? "4 3" : "3 3"}
+                    stroke={traceOverlay.applied ? "rgba(148,163,184,0.88)" : "#0ea5e9"}
+                    strokeWidth={traceOverlay.applied ? 1.4 : 1}
+                    strokeDasharray={traceOverlay.applied ? undefined : "4 3"}
+                    strokeLinecap="round"
                   />
                 ))}
               </svg>
             )}
 
-            {traceOverlay?.rooms?.map((room, index) => (
+            {!traceOverlay?.applied &&
+              traceOverlay?.rooms?.map((room, index) => (
               <div
                 key={`trace-room-${index}`}
                 style={{
@@ -452,7 +462,7 @@ export default function FloorEditorStep({
                   zIndex: 2,
                 }}
               />
-            ))}
+              ))}
 
             {alignmentGuides.length > 0 && (
               <svg
