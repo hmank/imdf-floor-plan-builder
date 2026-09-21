@@ -111,8 +111,8 @@ Share this URL with anyone who needs to create IMDF files.
 - Every pixel is classified as wall / not-wall using an adaptive threshold; colored room fills are ignored so they never count as walls
 - Doorways and anti-aliasing breaks are sealed automatically (the closing radius is swept 1–12 px and the best pass wins)
 - Every enclosed region becomes a room; hallways, the exterior, and regions that swallow other rooms are filtered out
-- Rooms with a colored fill in the source image are typed **Meeting Room**; plain ones are typed **Office** — change types afterwards in the properties panel
-- Rooms are named `Room 1…N` in reading order (top-to-bottom, left-to-right); rename as needed
+- Room type is inferred from position and fill: rooms bordering the building's exterior wall (windows) become **Office**, enclosed interior cells become **Workspace** (workstations), and colored fills become **Meeting Room** — change any type afterwards in the properties panel
+- Rooms are named by type in reading order (`Office 1…`, `Workspace 1…`, `Meeting Room 1…`); rename as needed
 
 #### Auto-Trace tips
 - Crop the image tightly to the floor plan (no toolbars or sidebars) for the cleanest result

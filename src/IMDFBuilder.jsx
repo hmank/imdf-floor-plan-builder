@@ -867,14 +867,19 @@ export default function IMDFBuilder() {
       return;
     }
 
-    const generatedItems = activeTrace.rooms.map((roomRect, index) => {
-      const nextItem = createItemFromCategory(roomRect.cat || "room", roomRect.x, roomRect.y);
-      return {
+    const generatedItems = [];
+    const countsByCat = {};
+    activeTrace.rooms.forEach((roomRect) => {
+      const cat = roomRect.cat || "room";
+      countsByCat[cat] = (countsByCat[cat] || 0) + 1;
+      const label = CAT_MAP[cat]?.label || "Room";
+      const nextItem = createItemFromCategory(cat, roomRect.x, roomRect.y);
+      generatedItems.push({
         ...nextItem,
-        name: `Room ${index + 1}`,
+        name: `${label} ${countsByCat[cat]}`,
         w: roomRect.w,
         h: roomRect.h,
-      };
+      });
     });
 
     setActiveItems((prevItems) => [...prevItems, ...generatedItems], {

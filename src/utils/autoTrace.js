@@ -289,6 +289,43 @@ export function segmentRooms(mask, width, height, options = {}) {
     components.push({ area, minX, maxX, minY, maxY, rSum, gSum, bSum, touchesFrame });
   }
 
+  // Exterior = sprawling regions that reach the image frame. Rooms that border the
+  // exterior sit on the building envelope (windows) and are treated as offices; enclosed
+  // interior cells are workstations.
+  const exteriorLabels = new Set();
+  components.forEach((component, label) => {
+    const bw = component.maxX - component.minX + 1;
+    const bh = component.maxY - component.minY + 1;
+    const fill = component.area / (bw * bh);
+    if (
+      component.touchesFrame &&
+      (fill < opts.frameFillRatio || component.area > opts.frameAreaFraction * totalArea)
+    ) {
+      exteriorLabels.add(label);
+    }
+  });
+  const ringPx = Math.max(4, Math.round(opts.exteriorRingPx ?? 10));
+  const bordersExterior = (minX, minY, maxX, maxY) => {
+    if (exteriorLabels.size === 0) {
+      return false;
+    }
+    const x0 = Math.max(0, minX - ringPx);
+    const x1 = Math.min(width - 1, maxX + ringPx);
+    const y0 = Math.max(0, minY - ringPx);
+    const y1 = Math.min(height - 1, maxY + ringPx);
+    for (let x = x0; x <= x1; x += 1) {
+      if (exteriorLabels.has(labels[y0 * width + x]) || exteriorLabels.has(labels[y1 * width + x])) {
+        return true;
+      }
+    }
+    for (let y = y0; y <= y1; y += 1) {
+      if (exteriorLabels.has(labels[y * width + x0]) || exteriorLabels.has(labels[y * width + x1])) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const candidates = [];
   components.forEach((component) => {
     const bw = component.maxX - component.minX + 1;
@@ -336,6 +373,13 @@ export function segmentRooms(mask, width, height, options = {}) {
       MIN_ITEM_SIZE
     );
 
+    let cat = "workspace";
+    if (colored) {
+      cat = "room";
+    } else if (bordersExterior(component.minX, component.minY, component.maxX, component.maxY)) {
+      cat = "office";
+    }
+
     candidates.push({
       x: rect.x,
       y: rect.y,
@@ -343,9 +387,40 @@ export function segmentRooms(mask, width, height, options = {}) {
       h: rect.h,
       area: component.area,
       fillRatio,
-      cat: colored ? "room" : "office",
+      cat,
+      minX: component.minX,
+      minY: component.minY,
+      maxX: component.maxX,
+      maxY: component.maxY,
     });
   });
+
+  // If the plan was cropped exactly at its outer wall there is no exterior region;
+  // fall back to treating rooms on the edge of the plan's bounding box as perimeter offices.
+  if (exteriorLabels.size === 0 && candidates.length > 0) {
+    const plan = candidates.reduce(
+      (acc, c) => ({
+        minX: Math.min(acc.minX, c.minX),
+        minY: Math.min(acc.minY, c.minY),
+        maxX: Math.max(acc.maxX, c.maxX),
+        maxY: Math.max(acc.maxY, c.maxY),
+      }),
+      { minX: width, minY: height, maxX: -1, maxY: -1 }
+    );
+    candidates.forEach((c) => {
+      if (c.cat !== "workspace") {
+        return;
+      }
+      const onEdge =
+        c.minX - plan.minX <= ringPx ||
+        c.minY - plan.minY <= ringPx ||
+        plan.maxX - c.maxX <= ringPx ||
+        plan.maxY - c.maxY <= ringPx;
+      if (onEdge) {
+        c.cat = "office";
+      }
+    });
+  }
 
   // Hallways and open areas often pass the fill test but wrap around real rooms.
   // Drop any candidate whose box swallows two or more other candidates.
@@ -383,7 +458,9 @@ export function segmentRooms(mask, width, height, options = {}) {
   });
 
   return {
-    rooms: filtered.slice(0, Math.max(1, opts.maxRooms)),
+    rooms: filtered
+      .slice(0, Math.max(1, opts.maxRooms))
+      .map(({ minX, minY, maxX, maxY, ...room }) => room),
     meta: {
       components: components.length,
       candidates: candidates.length,

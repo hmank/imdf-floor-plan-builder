@@ -84,6 +84,24 @@ describe("pixel auto-trace", () => {
     expect(traced.rooms[0].w).toBeLessThan(90);
   });
 
+  it("types perimeter rooms as offices and enclosed interior cells as workstations", () => {
+    const width = 300;
+    const height = 300;
+    const plan = createPlan(width, height);
+    // 3x3 grid of rooms with exterior background around it.
+    plan.rect(30, 30, 269, 269, 2, GRAY);
+    plan.fill(110, 30, 111, 269, GRAY);
+    plan.fill(190, 30, 191, 269, GRAY);
+    plan.fill(30, 110, 269, 111, GRAY);
+    plan.fill(30, 190, 269, 191, GRAY);
+
+    const traced = traceFromPixels(plan.pixels, width, height);
+    expect(traced.rooms.length).toBe(9);
+    const center = traced.rooms.find((r) => r.x > 100 && r.x < 130 && r.y > 100 && r.y < 130);
+    expect(center.cat).toBe("workspace");
+    expect(traced.rooms.filter((r) => r.cat === "office").length).toBe(8);
+  });
+
   it("seals hairline gaps so anti-aliased walls still enclose rooms", () => {
     const width = 200;
     const height = 200;

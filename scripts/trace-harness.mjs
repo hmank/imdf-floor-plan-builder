@@ -54,6 +54,9 @@ const result = traceFromPixels(canvas, CW, CH);
 console.log(
   `rooms=${result.rooms.length} wallPixels=${result.wallPixelCount} threshold=${result.meta.threshold} darkWalls=${result.meta.darkWalls} components=${result.meta.components} ms=${Date.now() - t0}`
 );
+const byCat = {};
+result.rooms.forEach((r) => { byCat[r.cat] = (byCat[r.cat] || 0) + 1; });
+console.log("by type:", JSON.stringify(byCat));
 console.log(
   result.rooms
     .slice(0, 12)
