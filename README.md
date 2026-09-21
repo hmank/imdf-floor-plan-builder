@@ -4,7 +4,7 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 
 ## Features
 
-- Drag & drop rooms (office, workspace, restroom, kitchen, walkway, stairs, elevator, etc.) onto a visual canvas
+- Drag & drop rooms (office, meeting room, workspace, restroom, kitchen, walkway, stairs, elevator, etc.) onto a visual canvas
 - Resize and reposition rooms with handles
 - Snap-to-grid placement and resize behavior
 - Auto-alignment guides to line up room edges/centers
@@ -111,7 +111,7 @@ Share this URL with anyone who needs to create IMDF files.
 - Every pixel is classified as wall / not-wall using an adaptive threshold; colored room fills are ignored so they never count as walls
 - Doorways and anti-aliasing breaks are sealed automatically (the closing radius is swept 1–12 px and the best pass wins)
 - Every enclosed region becomes a room; hallways, the exterior, and regions that swallow other rooms are filtered out
-- Rooms with a colored fill in the source image are typed **Room**; plain ones are typed **Office** — change types afterwards in the properties panel
+- Rooms with a colored fill in the source image are typed **Meeting Room**; plain ones are typed **Office** — change types afterwards in the properties panel
 - Rooms are named `Room 1…N` in reading order (top-to-bottom, left-to-right); rename as needed
 
 #### Auto-Trace tips

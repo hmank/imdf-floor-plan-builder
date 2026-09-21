@@ -9,8 +9,8 @@ export const DEFAULT_LAT = "45.3476";
 export const DEFAULT_LNG = "-75.7629";
 
 export const ROOM_TYPES = [
-  { cat: "office", icon: "🏢", label: "Office", w: 100, h: 80, color: "#3b82f6" },
-  { cat: "room", icon: "🚪", label: "Room", w: 90, h: 70, color: "#6366f1" },
+  { cat: "office", icon: "🪑", label: "Office", w: 100, h: 80, color: "#3b82f6" },
+  { cat: "room", icon: "👥", label: "Meeting Room", w: 90, h: 70, color: "#6366f1" },
   { cat: "workspace", icon: "💻", label: "Workspace", w: 60, h: 50, color: "#8b5cf6" },
   { cat: "restroom", icon: "🚻", label: "Restroom", w: 60, h: 50, color: "#ec4899" },
   { cat: "kitchen", icon: "🍳", label: "Kitchen", w: 80, h: 60, color: "#f59e0b" },
