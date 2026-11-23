@@ -27,28 +27,28 @@ export default function ExportStep({
     >
       <div style={{ maxWidth: 560, width: "100%" }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 24, fontWeight: 800 }}>Export IMDF</h2>
-        <p style={{ margin: "0 0 24px", fontSize: 13, color: "#64748b" }}>
+        <p style={{ margin: "0 0 24px", fontSize: 13, color: "var(--text-muted)" }}>
           Download one ZIP per building for Microsoft Places import and publishing.
         </p>
         <div
           style={{
-            border: "1px solid #334155",
+            border: "1px solid var(--border-strong)",
             borderRadius: 12,
             padding: 14,
-            background: "linear-gradient(180deg,rgba(15,23,42,0.7),rgba(12,12,20,0.5))",
+            background: "var(--panel-background)",
             marginBottom: 16,
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#cbd5e1", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-strong)", marginBottom: 8 }}>
             Export readiness
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55 }}>
             A building is export-ready when required setup fields are complete and at least one room exists.
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "#cbd5e1" }}>
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-strong)" }}>
             {exportReadyCount}/{buildings.length} buildings ready · {readyRoomCount} ready rooms
           </div>
-          <div style={{ marginTop: 2, fontSize: 11, color: "#64748b" }}>
+          <div style={{ marginTop: 2, fontSize: 11, color: "var(--text-muted)" }}>
             Total planned rooms across all buildings: {totalItems}
           </div>
         </div>
@@ -63,8 +63,8 @@ export default function ExportStep({
             <div
               key={building.id}
               style={{
-                background: "#12121e",
-                border: "1px solid #1e293b",
+                background: "var(--card-background)",
+                border: "1px solid var(--border)",
                 borderRadius: 12,
                 padding: 18,
                 marginBottom: 12,
@@ -77,12 +77,12 @@ export default function ExportStep({
                 <div style={{ fontSize: 15, fontWeight: 700 }}>
                   {building.name || `Building ${buildingIndex + 1}`}
                 </div>
-                <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                   {building.levels.length} floor{building.levels.length !== 1 ? "s" : ""} · {itemCount} room
                   {itemCount !== 1 ? "s" : ""}
                 </div>
                 {!canExport && (
-                  <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: "var(--error-text)", marginTop: 6 }}>
                     Missing: {readiness.exportMissing.join(", ")}
                   </div>
                 )}
@@ -94,8 +94,8 @@ export default function ExportStep({
                   padding: "9px 20px",
                   borderRadius: 8,
                   border: "none",
-                  background: canExport ? "linear-gradient(135deg,#6366f1,#3b82f6)" : "#1e293b",
-                  color: canExport ? "#fff" : "#475569",
+                  background: canExport ? "var(--primary-background)" : "var(--disabled-background)",
+                  color: canExport ? "#fff" : "var(--text-subtle)",
                   fontSize: 12,
                   fontWeight: 700,
                   fontFamily: "inherit",
@@ -124,10 +124,10 @@ export default function ExportStep({
         {readyBuildings.length === 0 && (
           <div
             style={{
-              border: "1px solid #7f1d1d",
+              border: "1px solid var(--error-border)",
               borderRadius: 10,
               background: "rgba(127,29,29,0.2)",
-              color: "#fca5a5",
+              color: "var(--error-text)",
               padding: "10px 12px",
               fontSize: 12,
             }}

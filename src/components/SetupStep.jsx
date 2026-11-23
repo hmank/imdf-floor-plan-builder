@@ -3,7 +3,7 @@ import { chip, inp, lbl, pBtn } from "../styles/ui";
 
 const requiredLabel = (
   <>
-    <span style={{ color: "#fca5a5" }}>*</span> Required
+    <span style={{ color: "var(--error-text)" }}>*</span> Required
   </>
 );
 
@@ -34,7 +34,7 @@ export default function SetupStep({
 }) {
   const uploadInputRef = useRef(null);
   const invalidInput = {
-    border: "1px solid #7f1d1d",
+    border: "1px solid var(--error-border)",
     background: "rgba(127,29,29,0.2)",
   };
 
@@ -50,28 +50,28 @@ export default function SetupStep({
     >
       <div style={{ maxWidth: 760, width: "100%" }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 24, fontWeight: 800 }}>Setup Buildings & Floors</h2>
-        <p style={{ margin: "0 0 18px", fontSize: 13, color: "#94a3b8" }}>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--text-secondary)" }}>
           Fill all required fields first so publishing/downloading your IMDF file is smooth.
         </p>
 
         <div
           style={{
-            border: "1px solid #334155",
-            background: "linear-gradient(180deg,rgba(15,23,42,0.8),rgba(12,12,20,0.6))",
+            border: "1px solid var(--border-strong)",
+            background: "var(--panel-background)",
             borderRadius: 14,
             padding: 16,
             marginBottom: 16,
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#cbd5e1", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-strong)", marginBottom: 10 }}>
             Publish checklist
           </div>
-          <div style={{ display: "grid", gap: 8, fontSize: 12, color: "#94a3b8" }}>
+          <div style={{ display: "grid", gap: 8, fontSize: 12, color: "var(--text-secondary)" }}>
             <div>1. Complete required building details (name + valid latitude/longitude).</div>
             <div>2. Ensure every floor has a name, then place rooms manually or with Auto-Trace from Image.</div>
             <div>3. Use Export step to download IMDF ZIP when building is marked ready.</div>
           </div>
-          <div style={{ marginTop: 12, fontSize: 12, color: "#cbd5e1" }}>
+          <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-strong)" }}>
             {setupReadyCount}/{buildings.length} building profiles ready for editing
           </div>
           <div style={{ marginTop: 12 }}>
@@ -92,8 +92,8 @@ export default function SetupStep({
               disabled={!uploadEnabled}
               style={{
                 ...chip,
-                border: uploadEnabled ? "1px solid #334155" : "1px solid #7f1d1d",
-                color: uploadEnabled ? "#cbd5e1" : "#fca5a5",
+                border: uploadEnabled ? "1px solid var(--border-strong)" : "1px solid var(--error-border)",
+                color: uploadEnabled ? "var(--text-strong)" : "var(--error-text)",
                 background: uploadEnabled ? "rgba(148,163,184,0.12)" : "rgba(127,29,29,0.2)",
                 cursor: uploadEnabled ? "pointer" : "not-allowed",
                 padding: "6px 10px",
@@ -106,7 +106,7 @@ export default function SetupStep({
             >
               Upload Configuration (JSON)
             </button>
-            <div style={{ marginTop: 6, fontSize: 11, color: "#64748b" }}>
+            <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-muted)" }}>
               Upload works on local/self-hosted deployments and is disabled on GitHub Pages.
             </div>
             {uploadStatus && (
@@ -114,7 +114,7 @@ export default function SetupStep({
                 style={{
                   marginTop: 8,
                   fontSize: 11,
-                  color: uploadStatus.type === "success" ? "#4ade80" : "#fca5a5",
+                  color: uploadStatus.type === "success" ? "var(--success-text)" : "var(--error-text)",
                 }}
               >
                 {uploadStatus.text}
@@ -138,8 +138,8 @@ export default function SetupStep({
             <div
               key={building.id}
               style={{
-                background: "#12121e",
-                border: isActive ? "1px solid rgba(99,102,241,0.4)" : "1px solid #1e293b",
+                background: "var(--card-background)",
+                border: isActive ? "1px solid var(--accent-border)" : "1px solid var(--border)",
                 borderRadius: 14,
                 padding: 20,
                 marginBottom: 14,
@@ -158,9 +158,7 @@ export default function SetupStep({
                     width: 28,
                     height: 28,
                     borderRadius: 8,
-                    background: `linear-gradient(135deg,${isActive ? "#6366f1" : "#334155"},${
-                      isActive ? "#3b82f6" : "#475569"
-                    })`,
+                    background: isActive ? "var(--primary-background)" : "var(--inactive-badge-background)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -177,8 +175,8 @@ export default function SetupStep({
                 <span
                   style={{
                     ...chip,
-                    border: readiness.setupReady ? "1px solid #166534" : "1px solid #7f1d1d",
-                    color: readiness.setupReady ? "#4ade80" : "#fca5a5",
+                    border: readiness.setupReady ? "1px solid var(--success-border)" : "1px solid var(--error-border)",
+                    color: readiness.setupReady ? "var(--success-text)" : "var(--error-text)",
                     background: readiness.setupReady
                       ? "rgba(22,163,74,0.15)"
                       : "rgba(239,68,68,0.12)",
@@ -192,8 +190,8 @@ export default function SetupStep({
                   style={{
                     ...chip,
                     background: isActive ? "rgba(99,102,241,0.2)" : "transparent",
-                    color: isActive ? "#a5b4fc" : "#94a3b8",
-                    border: isActive ? "1px solid #6366f1" : "1px solid #334155",
+                    color: isActive ? "var(--accent-text)" : "var(--text-secondary)",
+                    border: isActive ? "1px solid var(--accent-border)" : "1px solid var(--border-strong)",
                   }}
                 >
                   {isActive ? "✓ Active" : "Select"}
@@ -203,8 +201,8 @@ export default function SetupStep({
                     onClick={() => onDeleteBuilding(buildingIndex)}
                     style={{
                       ...chip,
-                      border: "1px solid #7f1d1d",
-                      color: "#f87171",
+                      border: "1px solid var(--error-border)",
+                      color: "var(--error-strong)",
                       background: "rgba(239,68,68,0.08)",
                     }}
                   >
@@ -219,7 +217,7 @@ export default function SetupStep({
                     style={{
                       fontSize: 11,
                       marginBottom: 12,
-                      color: readiness.setupReady ? "#4ade80" : "#fca5a5",
+                      color: readiness.setupReady ? "var(--success-text)" : "var(--error-text)",
                     }}
                   >
                     {listMissing(readiness.setupMissing)}
@@ -274,11 +272,11 @@ export default function SetupStep({
                       />
                     </div>
                   </div>
-                  <div style={{ marginBottom: 14, fontSize: 11, color: "#64748b" }}>
+                  <div style={{ marginBottom: 14, fontSize: 11, color: "var(--text-muted)" }}>
                     Tip: Right-click in Google Maps to copy exact latitude/longitude.
                   </div>
                   <label style={lbl}>
-                    Building PlaceId <span style={{ fontWeight: 400, color: "#475569" }}>(optional)</span>
+                    Building PlaceId <span style={{ fontWeight: 400, color: "var(--text-subtle)" }}>(optional)</span>
                   </label>
                   <input
                     style={{ ...inp, fontSize: 12, fontFamily: "'SF Mono','Fira Code',monospace" }}
@@ -288,7 +286,7 @@ export default function SetupStep({
                   />
 
                   <label style={{ ...lbl, marginBottom: 8 }}>
-                    Floors <span style={{ color: "#fca5a5" }}>*</span> Every floor needs a name
+                    Floors <span style={{ color: "var(--error-text)" }}>*</span> Every floor needs a name
                   </label>
                   {building.levels.map((level, levelIndex) => {
                     const missingFloorName = readiness.missingFloorNameIndexes.includes(levelIndex);
@@ -334,7 +332,7 @@ export default function SetupStep({
                             })
                           }
                         />
-                        <span style={{ fontSize: 10, color: "#475569" }}>{level.items.length} items</span>
+                        <span style={{ fontSize: 10, color: "var(--text-subtle)" }}>{level.items.length} items</span>
                         <input
                           style={{
                             ...inp,
@@ -356,7 +354,7 @@ export default function SetupStep({
                             style={{
                               background: "none",
                               border: "none",
-                              color: "#f87171",
+                              color: "var(--error-strong)",
                               cursor: "pointer",
                               fontSize: 14,
                             }}
@@ -374,8 +372,8 @@ export default function SetupStep({
                       marginTop: 6,
                       marginBottom: 0,
                       background: "rgba(99,102,241,0.06)",
-                      border: "1px dashed #334155",
-                      color: "#818cf8",
+                      border: "1px dashed var(--border-strong)",
+                      color: "var(--accent-link)",
                       cursor: "pointer",
                       textAlign: "center",
                       fontWeight: 600,
@@ -392,7 +390,7 @@ export default function SetupStep({
                     display: "flex",
                     gap: 14,
                     fontSize: 11,
-                    color: "#64748b",
+                    color: "var(--text-muted)",
                     marginTop: 6,
                     flexWrap: "wrap",
                   }}
@@ -403,7 +401,7 @@ export default function SetupStep({
                   </span>
                   <span>🚪 {readiness.roomCount} rooms</span>
                   {!readiness.setupReady && (
-                    <span style={{ color: "#fca5a5" }}>{listMissing(readiness.setupMissing)}</span>
+                    <span style={{ color: "var(--error-text)" }}>{listMissing(readiness.setupMissing)}</span>
                   )}
                 </div>
               )}
@@ -416,8 +414,8 @@ export default function SetupStep({
           style={{
             ...inp,
             background: "rgba(99,102,241,0.06)",
-            border: "1px dashed #334155",
-            color: "#818cf8",
+            border: "1px dashed var(--border-strong)",
+            color: "var(--accent-link)",
             cursor: "pointer",
             textAlign: "center",
             fontWeight: 600,
@@ -442,7 +440,7 @@ export default function SetupStep({
           Open Floor Editor →
         </button>
         {!activeBuildingReadiness.setupReady && (
-          <div style={{ marginTop: 8, fontSize: 11, color: "#fca5a5" }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--error-text)" }}>
             Complete required fields before continuing: {activeBuildingReadiness.setupMissing.join(", ")}.
           </div>
         )}

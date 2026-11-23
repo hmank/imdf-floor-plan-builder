@@ -1,12 +1,13 @@
-export default function AppHeader({ step, setStep, exportStatus }) {
+export default function AppHeader({ step, setStep, exportStatus, theme, onThemeChange }) {
   return (
     <div
       style={{
-        background: "linear-gradient(90deg,#0f172a,#1a1036)",
-        borderBottom: "1px solid #1e293b",
+        background: "var(--header-background)",
+        borderBottom: "1px solid var(--border)",
         padding: "8px 20px",
         display: "flex",
         alignItems: "center",
+        flexWrap: "wrap",
         gap: 14,
         flexShrink: 0,
       }}
@@ -16,7 +17,7 @@ export default function AppHeader({ step, setStep, exportStatus }) {
           width: 28,
           height: 28,
           borderRadius: 7,
-          background: "linear-gradient(135deg,#6366f1,#3b82f6)",
+          background: "var(--primary-background)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -32,8 +33,27 @@ export default function AppHeader({ step, setStep, exportStatus }) {
       </span>
       <div style={{ flex: 1 }} />
       {exportStatus && (
-        <span style={{ fontSize: 12, color: "#10b981", fontWeight: 600 }}>{exportStatus}</span>
+        <span style={{ fontSize: 12, color: "var(--success-status)", fontWeight: 600 }}>{exportStatus}</span>
       )}
+      <label style={{ fontSize: 12, color: "var(--text-strong)", whiteSpace: "nowrap" }}>
+        Theme{" "}
+        <select
+          value={theme}
+          onChange={(event) => onThemeChange(event.target.value)}
+          style={{
+            background: "var(--input-background)",
+            color: "var(--text)",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 6,
+            padding: "5px",
+            font: "inherit",
+          }}
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="high-contrast">High contrast</option>
+        </select>
+      </label>
       <div style={{ display: "flex", gap: 2 }}>
         {["Setup", "Floor Editor", "Export"].map((label, index) => (
           <button
@@ -47,7 +67,7 @@ export default function AppHeader({ step, setStep, exportStatus }) {
               fontWeight: step === index ? 700 : 500,
               fontFamily: "inherit",
               background: step === index ? "rgba(99,102,241,0.25)" : "transparent",
-              color: step === index ? "#a5b4fc" : "#64748b",
+              color: step === index ? "var(--accent-text)" : "var(--text-muted)",
               cursor: "pointer",
             }}
           >

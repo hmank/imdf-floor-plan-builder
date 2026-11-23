@@ -5,11 +5,11 @@ import { chip, inp, lbl } from "../styles/ui";
 function HistoryPill({ historyActions }) {
   const lastAction = historyActions[historyActions.length - 1];
   if (!lastAction) {
-    return <span style={{ fontSize: 11, color: "#475569" }}>No edits yet</span>;
+    return <span style={{ fontSize: 11, color: "var(--text-subtle)" }}>No edits yet</span>;
   }
   return (
-    <span style={{ fontSize: 11, color: "#94a3b8" }}>
-      Last: <strong style={{ color: "#cbd5e1" }}>{lastAction.label}</strong>
+    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+      Last: <strong style={{ color: "var(--text-strong)" }}>{lastAction.label}</strong>
     </span>
   );
 }
@@ -53,20 +53,20 @@ export default function FloorEditorStep({
   const traceInputRef = useRef(null);
   const traceStatusColor =
     traceStatus?.type === "error"
-      ? "#fca5a5"
+      ? "var(--error-text)"
       : traceStatus?.type === "progress"
-        ? "#fbbf24"
+        ? "var(--warning-text)"
         : traceStatus?.type === "success"
-          ? "#4ade80"
-          : "#94a3b8";
+          ? "var(--success-text)"
+          : "var(--text-secondary)";
 
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
       <div
         style={{
           width: 210,
-          background: "#0e0e1a",
-          borderRight: "1px solid #1e293b",
+          background: "var(--sidebar-background)",
+          borderRight: "1px solid var(--border)",
           padding: "12px 10px",
           display: "flex",
           flexDirection: "column",
@@ -77,7 +77,7 @@ export default function FloorEditorStep({
         <div
           style={{
             fontSize: 10,
-            color: "#64748b",
+            color: "var(--text-muted)",
             fontWeight: 700,
             letterSpacing: "0.08em",
             marginBottom: 8,
@@ -96,8 +96,8 @@ export default function FloorEditorStep({
               padding: "9px 10px",
               marginBottom: 4,
               borderRadius: 10,
-              border: "1px solid #1e293b",
-              background: "#12121e",
+              border: "1px solid var(--border)",
+              background: "var(--card-background)",
               cursor: "grab",
             }}
             onMouseEnter={(e) => {
@@ -105,8 +105,8 @@ export default function FloorEditorStep({
               e.currentTarget.style.background = `${roomType.color}15`;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#1e293b";
-              e.currentTarget.style.background = "#12121e";
+              e.currentTarget.style.borderColor = "var(--border)";
+              e.currentTarget.style.background = "var(--card-background)";
             }}
           >
             <span style={{ fontSize: 18 }}>{roomType.icon}</span>
@@ -124,9 +124,9 @@ export default function FloorEditorStep({
         <div
           style={{
             marginTop: 10,
-            border: "1px solid #334155",
+            border: "1px solid var(--border-strong)",
             borderRadius: 10,
-            background: "linear-gradient(180deg,rgba(15,23,42,0.65),rgba(12,12,20,0.5))",
+            background: "var(--panel-background)",
             padding: 10,
           }}
         >
@@ -141,10 +141,10 @@ export default function FloorEditorStep({
               e.target.value = "";
             }}
           />
-          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 700, letterSpacing: "0.08em" }}>
             AUTO-TRACE FLOOR PLAN
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: "#64748b", lineHeight: 1.45 }}>
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>
             Upload a floor-plan image to trace wall outlines and generate editable room suggestions.
           </div>
           <button
@@ -153,8 +153,8 @@ export default function FloorEditorStep({
               ...chip,
               width: "100%",
               marginTop: 8,
-              border: "1px solid #1d4ed8",
-              color: "#bfdbfe",
+              border: "1px solid var(--info-border)",
+              color: "var(--info-text)",
               background: "rgba(37,99,235,0.18)",
               padding: "7px 10px",
             }}
@@ -163,7 +163,7 @@ export default function FloorEditorStep({
             🪄 Auto-Trace from Image
           </button>
           {traceOverlay && (
-            <div style={{ marginTop: 8, fontSize: 11, color: "#94a3b8", lineHeight: 1.45 }}>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.45 }}>
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
                 {traceOverlay.applied
@@ -171,12 +171,12 @@ export default function FloorEditorStep({
                   : `${traceOverlay.rooms.length} rooms detected`}
               </div>
               {traceOverlay.applied && (
-                <div style={{ marginTop: 6, color: "#86efac" }}>
+                <div style={{ marginTop: 6, color: "var(--success-light)" }}>
                   Click any room to rename it or change its type. Drag edges to fine-tune.
                 </div>
               )}
               {!traceOverlay.applied && traceOverlay.rooms.length === 0 && (
-                <div style={{ marginTop: 6, color: "#fbbf24" }}>
+                <div style={{ marginTop: 6, color: "var(--warning-text)" }}>
                   No enclosed rooms detected. Crop the image tightly to the floor plan and try again.
                 </div>
               )}
@@ -187,8 +187,8 @@ export default function FloorEditorStep({
                   style={{
                     ...chip,
                     flex: 1,
-                    border: "1px solid #166534",
-                    color: traceOverlay.rooms.length > 0 ? "#86efac" : "#475569",
+                    border: "1px solid var(--success-border)",
+                    color: traceOverlay.rooms.length > 0 ? "var(--success-light)" : "var(--text-subtle)",
                     background: traceOverlay.rooms.length > 0 ? "rgba(34,197,94,0.15)" : "transparent",
                     cursor: traceOverlay.rooms.length > 0 ? "pointer" : "not-allowed",
                     padding: "6px 8px",
@@ -201,8 +201,8 @@ export default function FloorEditorStep({
                   onClick={onClearTraceOverlay}
                   style={{
                     ...chip,
-                    border: "1px solid #7f1d1d",
-                    color: "#fca5a5",
+                    border: "1px solid var(--error-border)",
+                    color: "var(--error-text)",
                     background: "rgba(127,29,29,0.2)",
                     padding: "6px 8px",
                   }}
@@ -218,19 +218,19 @@ export default function FloorEditorStep({
             </div>
           )}
         </div>
-        <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px solid #1e293b" }}>
-          <div style={{ fontSize: 10, color: "#475569", lineHeight: 1.6 }}>
+        <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 10, color: "var(--text-subtle)", lineHeight: 1.6 }}>
             <div>
-              <strong style={{ color: "#94a3b8" }}>Undo/Redo:</strong> Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z
+              <strong style={{ color: "var(--text-secondary)" }}>Undo/Redo:</strong> Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z
             </div>
             <div>
-              <strong style={{ color: "#94a3b8" }}>Copy/Paste:</strong> Ctrl/Cmd+C, Ctrl/Cmd+V
+              <strong style={{ color: "var(--text-secondary)" }}>Copy/Paste:</strong> Ctrl/Cmd+C, Ctrl/Cmd+V
             </div>
             <div>
-              <strong style={{ color: "#94a3b8" }}>Snap:</strong> press G to toggle
+              <strong style={{ color: "var(--text-secondary)" }}>Snap:</strong> press G to toggle
             </div>
             <div>
-              <strong style={{ color: "#f87171" }}>Delete:</strong> Delete/Backspace
+              <strong style={{ color: "var(--error-strong)" }}>Delete:</strong> Delete/Backspace
             </div>
           </div>
         </div>
@@ -240,8 +240,8 @@ export default function FloorEditorStep({
         <div
           style={{
             padding: "8px 16px",
-            background: "#0e0e1a",
-            borderBottom: "1px solid #1e293b",
+            background: "var(--sidebar-background)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -256,14 +256,14 @@ export default function FloorEditorStep({
                 style={{
                   ...chip,
                   background: bi === buildingIndex ? "rgba(99,102,241,0.2)" : "transparent",
-                  color: bi === buildingIndex ? "#a5b4fc" : "#64748b",
-                  border: bi === buildingIndex ? "1px solid #6366f1" : "1px solid #1e293b",
+                  color: bi === buildingIndex ? "var(--accent-text)" : "var(--text-muted)",
+                  border: bi === buildingIndex ? "1px solid var(--accent-border)" : "1px solid var(--border)",
                 }}
               >
                 {building.name || `Bldg ${buildingIndex + 1}`}
               </button>
             ))}
-          {buildings.length > 1 && <div style={{ width: 1, height: 20, background: "#1e293b" }} />}
+          {buildings.length > 1 && <div style={{ width: 1, height: 20, background: "var(--border)" }} />}
           {levels.map((level, levelIndex) => (
             <button
               key={level.id}
@@ -271,8 +271,8 @@ export default function FloorEditorStep({
               style={{
                 ...chip,
                 background: li === levelIndex ? "rgba(99,102,241,0.2)" : "transparent",
-                color: li === levelIndex ? "#a5b4fc" : "#64748b",
-                border: li === levelIndex ? "1px solid #6366f1" : "1px solid #1e293b",
+                color: li === levelIndex ? "var(--accent-text)" : "var(--text-muted)",
+                border: li === levelIndex ? "1px solid var(--accent-border)" : "1px solid var(--border)",
               }}
             >
               Floor {level.name}
@@ -284,8 +284,8 @@ export default function FloorEditorStep({
             disabled={!canUndo}
             style={{
               ...chip,
-              border: "1px solid #334155",
-              color: canUndo ? "#cbd5e1" : "#475569",
+              border: "1px solid var(--border-strong)",
+              color: canUndo ? "var(--text-strong)" : "var(--text-subtle)",
               cursor: canUndo ? "pointer" : "not-allowed",
             }}
             title="Undo (Ctrl/Cmd+Z)"
@@ -297,8 +297,8 @@ export default function FloorEditorStep({
             disabled={!canRedo}
             style={{
               ...chip,
-              border: "1px solid #334155",
-              color: canRedo ? "#cbd5e1" : "#475569",
+              border: "1px solid var(--border-strong)",
+              color: canRedo ? "var(--text-strong)" : "var(--text-subtle)",
               cursor: canRedo ? "pointer" : "not-allowed",
             }}
             title="Redo (Ctrl/Cmd+Shift+Z)"
@@ -309,8 +309,8 @@ export default function FloorEditorStep({
             onClick={onToggleSnap}
             style={{
               ...chip,
-              border: snapEnabled ? "1px solid #16a34a" : "1px solid #334155",
-              color: snapEnabled ? "#4ade80" : "#94a3b8",
+              border: snapEnabled ? "1px solid var(--success-border)" : "1px solid var(--border-strong)",
+              color: snapEnabled ? "var(--success-text)" : "var(--text-secondary)",
               background: snapEnabled ? "rgba(34,197,94,0.12)" : "transparent",
             }}
             title="Toggle grid snap (G)"
@@ -322,15 +322,15 @@ export default function FloorEditorStep({
             onClick={onGoToExport}
             style={{
               ...chip,
-              border: "1px solid #1d4ed8",
-              color: "#bfdbfe",
+              border: "1px solid var(--info-border)",
+              color: "var(--info-text)",
               background: "rgba(37,99,235,0.18)",
             }}
             title="Go to Export tab and download IMDF"
           >
             Ready? Open Export Tab →
           </button>
-          <span style={{ fontSize: 11, color: "#475569" }}>{items.length} items</span>
+          <span style={{ fontSize: 11, color: "var(--text-subtle)" }}>{items.length} items</span>
         </div>
 
         <div
@@ -339,7 +339,7 @@ export default function FloorEditorStep({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#080810",
+            background: "var(--workspace-background)",
             overflow: "auto",
             padding: 20,
           }}
@@ -350,9 +350,9 @@ export default function FloorEditorStep({
             style={{
               width: CANVAS_W,
               height: CANVAS_H,
-              background: "#10101c",
+              background: "var(--canvas-background)",
               borderRadius: 12,
-              border: isPaletteDragging ? "1px solid #6366f1" : "1px solid #1e293b",
+              border: isPaletteDragging ? "1px solid var(--accent-border)" : "1px solid var(--border)",
               position: "relative",
               boxShadow: isPaletteDragging ? "0 0 20px rgba(99,102,241,0.4)" : "0 0 60px rgba(0,0,0,0.5)",
               overflow: "hidden",
@@ -368,7 +368,7 @@ export default function FloorEditorStep({
                 top: 0,
                 left: 0,
                 pointerEvents: "none",
-                opacity: 0.18,
+                opacity: "var(--grid-opacity)",
               }}
             >
               {Array.from({ length: Math.floor(CANVAS_W / GRID_SIZE) + 1 }).map((_, i) => (
@@ -378,7 +378,7 @@ export default function FloorEditorStep({
                   y1={0}
                   x2={i * GRID_SIZE}
                   y2={CANVAS_H}
-                  stroke="#334155"
+                  stroke="var(--border-strong)"
                   strokeWidth={0.5}
                 />
               ))}
@@ -389,7 +389,7 @@ export default function FloorEditorStep({
                   y1={i * GRID_SIZE}
                   x2={CANVAS_W}
                   y2={i * GRID_SIZE}
-                  stroke="#334155"
+                  stroke="var(--border-strong)"
                   strokeWidth={0.5}
                 />
               ))}
@@ -423,6 +423,7 @@ export default function FloorEditorStep({
                   width: CANVAS_W,
                   height: CANVAS_H,
                   opacity: traceOverlay.applied ? 0.95 : 0.75,
+                  filter: "var(--wall-filter)",
                   pointerEvents: "none",
                   imageRendering: "pixelated",
                 }}
@@ -439,7 +440,7 @@ export default function FloorEditorStep({
                   top: room.y,
                   width: room.w,
                   height: room.h,
-                  border: "1px solid rgba(74,222,128,0.9)",
+                  border: "1px solid var(--trace-border)",
                   background: "rgba(74,222,128,0.14)",
                   pointerEvents: "none",
                   zIndex: 2,
@@ -468,7 +469,7 @@ export default function FloorEditorStep({
                       y1={guide.start}
                       x2={guide.position}
                       y2={guide.end}
-                      stroke="#38bdf8"
+                      stroke="var(--guide-color)"
                       strokeWidth={1}
                       strokeDasharray="4 4"
                     />
@@ -479,7 +480,7 @@ export default function FloorEditorStep({
                       y1={guide.position}
                       x2={guide.end}
                       y2={guide.position}
-                      stroke="#38bdf8"
+                      stroke="var(--guide-color)"
                       strokeWidth={1}
                       strokeDasharray="4 4"
                     />
@@ -499,7 +500,7 @@ export default function FloorEditorStep({
                   pointerEvents: "none",
                 }}
               >
-                <div style={{ textAlign: "center", color: "#334155" }}>
+                <div style={{ textAlign: "center", color: "var(--border-strong)" }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>📐</div>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>Drag rooms from the left panel</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>
@@ -522,8 +523,10 @@ export default function FloorEditorStep({
                     top: item.y,
                     width: item.w,
                     height: item.h,
-                    background: `${roomType.color}25`,
-                    border: isSelected ? `2px solid ${roomType.color}` : `1px solid ${roomType.color}60`,
+                    background: `var(--room-background, ${roomType.color}25)`,
+                    border: isSelected
+                      ? `2px solid var(--selected-room-border, ${roomType.color})`
+                      : `1px solid var(--room-border, ${roomType.color}60)`,
                     borderRadius: 6,
                     cursor: "move",
                     display: "flex",
@@ -542,7 +545,7 @@ export default function FloorEditorStep({
                       style={{
                         fontSize: 9,
                         fontWeight: 700,
-                        color: "#e2e8f0",
+                        color: "var(--text)",
                         marginTop: 2,
                         maxWidth: item.w - 8,
                         overflow: "hidden",
@@ -558,7 +561,7 @@ export default function FloorEditorStep({
                     <span
                       style={{
                         fontSize: 8,
-                        color: roomType.color,
+                        color: `var(--room-dimension-color, ${roomType.color})`,
                         fontWeight: 600,
                         marginTop: 1,
                       }}
@@ -573,7 +576,7 @@ export default function FloorEditorStep({
                         position: "absolute",
                         width: 10,
                         height: 10,
-                        background: roomType.color,
+                        background: `var(--room-handle, ${roomType.color})`,
                         borderRadius: 2,
                         zIndex: 20,
                       };
@@ -617,8 +620,8 @@ export default function FloorEditorStep({
       <div
         style={{
           width: 260,
-          background: "#0e0e1a",
-          borderLeft: "1px solid #1e293b",
+          background: "var(--sidebar-background)",
+          borderLeft: "1px solid var(--border)",
           padding: "14px 12px",
           display: "flex",
           flexDirection: "column",
@@ -630,7 +633,7 @@ export default function FloorEditorStep({
             <div
               style={{
                 fontSize: 10,
-                color: "#64748b",
+                color: "var(--text-muted)",
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 marginBottom: 10,
@@ -670,7 +673,7 @@ export default function FloorEditorStep({
               <option value="no">Not accessible</option>
             </select>
             <label style={lbl}>
-              PlaceId <span style={{ fontWeight: 400, color: "#475569" }}>(optional)</span>
+              PlaceId <span style={{ fontWeight: 400, color: "var(--text-subtle)" }}>(optional)</span>
             </label>
             <input
               style={{
@@ -747,7 +750,7 @@ export default function FloorEditorStep({
                 />
               </div>
             </div>
-            <div style={{ fontSize: 10, color: "#475569", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-subtle)", marginBottom: 12 }}>
               Enter dimensions in meters; pixel values are shown in brackets for placement preview.
             </div>
             <div style={{ marginTop: "auto" }} />
@@ -757,9 +760,9 @@ export default function FloorEditorStep({
                 width: "100%",
                 padding: "8px",
                 borderRadius: 8,
-                border: "1px solid #7f1d1d",
+                border: "1px solid var(--error-border)",
                 background: "rgba(239,68,68,0.08)",
-                color: "#f87171",
+                color: "var(--error-strong)",
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: "pointer",
@@ -775,9 +778,9 @@ export default function FloorEditorStep({
                 width: "100%",
                 padding: "8px",
                 borderRadius: 8,
-                border: "1px solid #334155",
+                border: "1px solid var(--border-strong)",
                 background: "transparent",
-                color: "#94a3b8",
+                color: "var(--text-secondary)",
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -789,7 +792,7 @@ export default function FloorEditorStep({
           </>
         ) : (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ textAlign: "center", color: "#334155", fontSize: 12 }}>
+            <div style={{ textAlign: "center", color: "var(--border-strong)", fontSize: 12 }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>👈</div>
               Click a room on the
               <br />

@@ -10,6 +10,7 @@ import {
   ROOM_TYPES,
 } from "./constants/editor";
 import { createBuilding, createItemFromCategory, createLevel, createPastedItem } from "./state/factories";
+import { getInitialTheme, saveTheme } from "./styles/theme";
 import { alignRectToItems, clampRectToCanvas, snapValue } from "./utils/editorMath";
 import { createHistoryState, commitFromSnapshot, redoHistory, undoHistory, updateHistoryPresent } from "./utils/history";
 import { traceFloorPlanImage } from "./utils/autoTrace";
@@ -162,6 +163,7 @@ function normalizeUploadedConfiguration(rawConfig) {
 }
 
 export default function IMDFBuilder() {
+  const [theme, setTheme] = useState(getInitialTheme);
   const [history, setHistory] = useState(() => createHistoryState([createBuilding()]));
   const [bi, setBi] = useState(0);
   const [li, setLi] = useState(0);
@@ -918,17 +920,27 @@ export default function IMDFBuilder() {
 
   return (
     <div
+      data-theme={theme}
       style={{
         fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif",
-        background: "#0c0c14",
-        color: "#e2e8f0",
+        background: "var(--app-background)",
+        color: "var(--text)",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         userSelect: "none",
       }}
     >
-      <AppHeader step={step} setStep={setStep} exportStatus={exportStatus} />
+      <AppHeader
+        step={step}
+        setStep={setStep}
+        exportStatus={exportStatus}
+        theme={theme}
+        onThemeChange={(nextTheme) => {
+          setTheme(nextTheme);
+          saveTheme(nextTheme);
+        }}
+      />
 
       {step === 0 && (
         <SetupStep

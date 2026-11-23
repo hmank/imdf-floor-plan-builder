@@ -1,0 +1,125 @@
+[data-theme] {
+  --app-background: #0c0c14;
+  --sidebar-background: #0e0e1a;
+  --card-background: #12121e;
+  --input-background: #181826;
+  --workspace-background: #080810;
+  --canvas-background: #10101c;
+  --header-background: linear-gradient(90deg, #0f172a, #1a1036);
+  --panel-background: linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(12, 12, 20, 0.6));
+  --primary-background: linear-gradient(135deg, #6366f1, #3b82f6);
+  --inactive-badge-background: linear-gradient(135deg, #334155, #475569);
+  --disabled-background: #1e293b;
+  --border: #1e293b;
+  --border-strong: #334155;
+  --text: #e2e8f0;
+  --text-strong: #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-subtle: #475569;
+  --accent-text: #a5b4fc;
+  --accent-link: #818cf8;
+  --accent-border: #6366f1;
+  --info-text: #bfdbfe;
+  --error-text: #fca5a5;
+  --error-strong: #f87171;
+  --success-text: #4ade80;
+  --success-light: #86efac;
+  --success-status: #10b981;
+  --warning-text: #fbbf24;
+  --error-border: #7f1d1d;
+  --success-border: #166534;
+  --info-border: #1d4ed8;
+  --trace-border: rgba(74, 222, 128, 0.9);
+  --guide-color: #38bdf8;
+  --grid-opacity: 0.18;
+  --wall-filter: none;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --app-background: #f1f5f9;
+  --sidebar-background: #e8eef5;
+  --card-background: #ffffff;
+  --input-background: #ffffff;
+  --workspace-background: #dce5ef;
+  --canvas-background: #ffffff;
+  --header-background: #ffffff;
+  --panel-background: #ffffff;
+  --primary-background: linear-gradient(135deg, #3730a3, #1d4ed8);
+  --inactive-badge-background: #475569;
+  --disabled-background: #e2e8f0;
+  --border: #94a3b8;
+  --border-strong: #475569;
+  --text: #111827;
+  --text-strong: #1e293b;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --text-subtle: #475569;
+  --accent-text: #3730a3;
+  --accent-link: #3730a3;
+  --accent-border: #3730a3;
+  --info-text: #1e3a8a;
+  --error-text: #991b1b;
+  --error-strong: #991b1b;
+  --success-text: #166534;
+  --success-light: #14532d;
+  --success-status: #166534;
+  --warning-text: #78350f;
+  --trace-border: #166534;
+  --guide-color: #1d4ed8;
+  --grid-opacity: 0.35;
+  --wall-filter: invert(1);
+  --room-border: #334155;
+  --selected-room-border: #1d4ed8;
+  --room-dimension-color: #111827;
+  color-scheme: light;
+}
+
+[data-theme="high-contrast"] {
+  --app-background: #000000;
+  --sidebar-background: #000000;
+  --card-background: #000000;
+  --input-background: #000000;
+  --workspace-background: #000000;
+  --canvas-background: #000000;
+  --header-background: #000000;
+  --panel-background: #000000;
+  --primary-background: #0033a0;
+  --inactive-badge-background: #0033a0;
+  --disabled-background: #303030;
+  --border: #ffffff;
+  --border-strong: #ffffff;
+  --text: #ffffff;
+  --text-strong: #ffffff;
+  --text-secondary: #ffffff;
+  --text-muted: #ffffff;
+  --text-subtle: #ffffff;
+  --accent-text: #ffff00;
+  --accent-link: #ffff00;
+  --accent-border: #ffff00;
+  --info-text: #ffffff;
+  --error-text: #ffb3b3;
+  --error-strong: #ffb3b3;
+  --success-text: #b6ffb6;
+  --success-light: #b6ffb6;
+  --success-status: #b6ffb6;
+  --warning-text: #ffff00;
+  --error-border: #ffb3b3;
+  --success-border: #b6ffb6;
+  --info-border: #ffffff;
+  --trace-border: #b6ffb6;
+  --guide-color: #00ffff;
+  --grid-opacity: 0.5;
+  --room-border: #ffffff;
+  --selected-room-border: #ffff00;
+  --room-handle: #ffff00;
+  --room-dimension-color: #ffffff;
+  --room-background: #000000;
+  color-scheme: dark;
+}
+
+[data-theme] :focus-visible {
+  outline: 3px solid var(--accent-link) !important;
+  outline-offset: 2px;
+}

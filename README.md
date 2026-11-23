@@ -84,6 +84,9 @@ Share this URL with anyone who needs to create IMDF files.
 ## How to Use the App
 
 ### Step 1: Setup
+
+Use the **Theme** selector in the header to choose Dark, Light, or High contrast.
+Your selection is saved in this browser on this device when browser storage is available.
 - Enter building name, latitude/longitude (right-click Google Maps to copy), and category
 - Add floors with names and ordinal numbers (0 = ground, 1 = 2nd floor, -1 = basement)
 - Ordinals must match the `SortOrder` value configured in Microsoft Places
