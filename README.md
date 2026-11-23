@@ -11,9 +11,9 @@ A free, open-source drag-and-drop floor plan builder that generates [IMDF](https
 - Undo/redo with action history
 - Copy/paste selected rooms with keyboard shortcuts
 - Room dimensions editable in meters with live pixel preview
-- Auto-trace a floor-plan image: detects every enclosed room and the wall blueprint in one click
+- Auto-trace floor-plan images into room and possible desk suggestions
 - Multi-building and multi-floor support
-- Exports valid IMDF ZIP files containing all 5 required GeoJSON files
+- Exports IMDF ZIP files with room and fixture GeoJSON
 - Setup checklist and export-readiness status to guide publish flow
 - Optional configuration upload for local/self-hosted deployments
 - Converts canvas positions to real geographic coordinates
@@ -28,7 +28,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open http://localhost:5173/imdf-floor-plan-builder/
 
 ## Deploy to GitHub Pages (Step-by-Step)
 
@@ -95,8 +95,8 @@ Your selection is saved in this browser on this device when browser storage is a
 
 ### Step 2: Floor Editor
 - **Drag** room types from the left palette onto the canvas, **or**
-- Click **🪄 Auto-Trace from Image** and pick a floor-plan image — the app detects every enclosed room and shows them as green outlines over the traced walls
-- Click **+ Add Detected Rooms** to turn every outline into an editable room in one step. The green overlay disappears and the wall blueprint (outer + interior walls) stays behind as a guide
+- Click **🪄 Auto-Trace from Image** and pick a floor-plan image — suggested rooms appear in green and possible desks in orange
+- Click **+ Add Detected Rooms and Desks** to add editable objects. The wall blueprint stays behind as a guide
 - **Click** a room to select it
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
@@ -111,17 +111,19 @@ Your selection is saved in this browser on this device when browser storage is a
 - When ready, click **Ready? Open Export Tab →** (or the Export tab in the header)
 
 #### How Auto-Trace works
-- Every pixel is classified as wall / not-wall using an adaptive threshold; colored room fills are ignored so they never count as walls
-- Doorways and anti-aliasing breaks are sealed automatically (the closing radius is swept 1–12 px and the best pass wins)
-- Every enclosed region becomes a room; hallways, the exterior, and regions that swallow other rooms are filtered out
-- Room type is inferred from position and fill: rooms bordering the building's exterior wall (windows) become **Office**, enclosed interior cells become **Workspace** (workstations), and colored fills become **Meeting Room** — change any type afterwards in the properties panel
-- Rooms are named by type in reading order (`Office 1…`, `Workspace 1…`, `Meeting Room 1…`); rename as needed
+- Pixels are classified as walls using an adaptive threshold, with a structural-line pass to reduce false rooms from furniture and labels
+- Doorways and anti-aliasing breaks are sealed automatically; multiple wall and line scales are compared
+- Enclosed regions become room suggestions; likely hallways, the exterior, and overlapping regions are filtered out
+- Repeated small white rectangles inside detected rooms are suggested as individual desk fixtures; other drawing styles may not be detected, and other objects may be mistaken for desks
+- Room labels are read using local OCR, with recognized labels used to suggest room types. Unrecognized labels remain **Other**; OCR may also misread labels
+- Image processing and OCR run in the browser; OCR assets are served from this site and images are not uploaded
 
 #### Auto-Trace tips
 - Crop the image tightly to the floor plan (no toolbars or sidebars) for the cleanest result
 - Higher-resolution source images give tighter room boundaries
 - Trace overlays are per-floor and non-destructive: click **Clear** and re-run any time
-- Auto-trace creates a starting layout; review names, types and sizes before export
+- Auto-trace creates a starting layout, not a complete or guaranteed detection; check for missing or split rooms and review all names, types, desk suggestions and sizes before export
+- Desk fixtures can be selected over rooms and moved, resized, copied or deleted. Grid and alignment snapping do not apply to desks
 
 #### Testing the tracer on your own image (dev)
 ```bash
@@ -145,7 +147,7 @@ The harness prints the room count and writes a debug PNG (walls in black, detect
 - Click **Download ZIP** for each building
 - Buildings must be export-ready (required setup complete + at least one room)
 - Use **Export All Ready Buildings** to download all valid configurations
-- Each ZIP contains: `building.geojson`, `footprint.geojson`, `level.geojson`, `unit.geojson`, `fixture.geojson`
+- Each ZIP contains: `building.geojson`, `footprint.geojson`, `level.geojson`, `unit.geojson`, `fixture.geojson`, and `section.geojson`. Desks are individual fixtures, not units or desk pools. Sections are empty; whether furniture renders in Microsoft Places without populated sections has not been verified.
 
 ### Step 4: Import into Microsoft Places
 

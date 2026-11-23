@@ -5,6 +5,7 @@ export function generateImdfFiles(building) {
   const lat = parseFloat(building.lat) || 45.3476;
   const lng = parseFloat(building.lng) || -75.7629;
   const allUnits = [];
+  const allFixtures = [];
 
   building.levels.forEach((level, levelIndex) => {
     level.items.forEach((item) => {
@@ -13,7 +14,7 @@ export function generateImdfFiles(building) {
       const br = pxToGeo(item.x + item.w, item.y + item.h, lat, lng);
       const bl = pxToGeo(item.x, item.y + item.h, lat, lng);
       const centerPoint = pxToGeo(item.x + item.w / 2, item.y + item.h / 2, lat, lng);
-      allUnits.push({
+      const feature = {
         id: item.id,
         cat: item.cat,
         name: item.name,
@@ -22,7 +23,8 @@ export function generateImdfFiles(building) {
         displayPoint: { type: "Point", coordinates: centerPoint },
         levelIndex,
         coords: [[tl, tr, br, bl, tl]],
-      });
+      };
+      (item.featureType === "fixture" ? allFixtures : allUnits).push(feature);
     });
   });
 
@@ -48,12 +50,13 @@ export function generateImdfFiles(building) {
   };
 
   let footprintCoords;
-  if (allUnits.length > 0) {
+  const allFeatures = [...allUnits, ...allFixtures];
+  if (allFeatures.length > 0) {
     let minLng = Infinity;
     let maxLng = -Infinity;
     let minLat = Infinity;
     let maxLat = -Infinity;
-    allUnits
+    allFeatures
       .flatMap((unit) => unit.coords[0])
       .forEach(([unitLng, unitLat]) => {
         minLng = Math.min(minLng, unitLng);
@@ -100,7 +103,7 @@ export function generateImdfFiles(building) {
   const levelGeojson = {
     type: "FeatureCollection",
     features: building.levels.map((level, index) => {
-      const levelUnits = allUnits.filter((unit) => unit.levelIndex === index);
+      const levelUnits = allFeatures.filter((unit) => unit.levelIndex === index);
       let levelPolygon = footprintCoords;
       if (levelUnits.length > 0) {
         let minLng = Infinity;
@@ -169,7 +172,24 @@ export function generateImdfFiles(building) {
     })),
   };
 
-  const fixtureGeojson = { type: "FeatureCollection", features: [] };
+  const fixtureGeojson = {
+    type: "FeatureCollection",
+    features: allFixtures.map((fixture) => ({
+      id: fixture.id,
+      type: "Feature",
+      feature_type: "fixture",
+      geometry: { type: "Polygon", coordinates: fixture.coords },
+      properties: {
+        category: fixture.cat,
+        name: fixture.name ? { en: fixture.name } : null,
+        alt_name: null,
+        anchor_id: null,
+        display_point: fixture.displayPoint,
+        level_id: building.levels[fixture.levelIndex].id,
+      },
+    })),
+  };
+  const sectionGeojson = { type: "FeatureCollection", features: [] };
 
   return [
     { name: "building.geojson", content: JSON.stringify(buildingGeojson, null, 2) },
@@ -177,5 +197,6 @@ export function generateImdfFiles(building) {
     { name: "level.geojson", content: JSON.stringify(levelGeojson, null, 2) },
     { name: "unit.geojson", content: JSON.stringify(unitGeojson, null, 2) },
     { name: "fixture.geojson", content: JSON.stringify(fixtureGeojson, null, 2) },
+    { name: "section.geojson", content: JSON.stringify(sectionGeojson, null, 2) },
   ];
 }

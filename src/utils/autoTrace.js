@@ -6,12 +6,14 @@ import {
   TRACE_MIN_ROOM_SIZE_PX,
 } from "../constants/editor";
 import { clampRectToCanvas } from "./editorMath";
+import { detectDeskFixtures } from "./deskDetection";
+import { recognizeRoomLabels } from "./roomLabels";
 
 // Pixel-level floor-plan tracer.
 // 1. Classify every pixel as wall / not-wall using an adaptive (Otsu) luma threshold,
-//    excluding saturated pixels so colored room fills never count as walls.
-// 2. Morphologically close the wall mask to seal doorways and anti-aliasing breaks,
-//    sweeping the closing radius and keeping the pass that yields the most rooms.
+//    excluding saturated pixels so colored room fills are not treated as walls.
+// 2. Seal doorways and anti-aliasing breaks, and compare the resulting regions
+//    with a structural-line mask that suppresses furniture and text.
 // 3. Flood-fill the non-wall pixels; every enclosed, reasonably rectangular
 //    component becomes a room suggestion.
 
@@ -350,14 +352,14 @@ export function segmentRooms(mask, width, height, options = {}) {
       return;
     }
 
-    let colored = false;
+    let meetingFill = false;
     if (pixels && component.area > 0) {
       const r = component.rSum / component.area;
       const g = component.gSum / component.area;
       const b = component.bSum / component.area;
       const mx = Math.max(r, g, b);
       const mn = Math.min(r, g, b);
-      colored = mx > 0 && (mx - mn) / mx >= opts.coloredSaturation;
+      meetingFill = mx > 0 && (mx - mn) / mx >= opts.coloredSaturation && r > g && g > b;
     }
 
     // Grow the box back by the sealing radius so rooms meet their walls.
@@ -374,7 +376,7 @@ export function segmentRooms(mask, width, height, options = {}) {
     );
 
     let cat = "workspace";
-    if (colored) {
+    if (meetingFill) {
       cat = "room";
     } else if (bordersExterior(component.minX, component.minY, component.maxX, component.maxY)) {
       cat = "office";
@@ -470,6 +472,88 @@ export function segmentRooms(mask, width, height, options = {}) {
 
 const SEAL_RADII = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12];
 
+function structuralLines(mask, width, height, horizontalMin, verticalMin) {
+  const lines = new Uint8Array(mask.length);
+  for (const horizontal of [true, false]) {
+    const groups = horizontal ? height : width;
+    const length = horizontal ? width : height;
+    const minimum = horizontal ? horizontalMin : verticalMin;
+    for (let group = 0; group < groups; group += 1) {
+      let start = -1;
+      let last = -1;
+      for (let pos = 0; pos <= length + 2; pos += 1) {
+        const index = horizontal ? group * width + pos : pos * width + group;
+        if (pos < length && mask[index]) {
+          if (start < 0) start = pos;
+          last = pos;
+        } else if (start >= 0 && pos - last > 2) {
+          if (last - start + 1 >= minimum) {
+            for (let p = start; p <= last; p += 1) {
+              lines[horizontal ? group * width + p : p * width + group] = 1;
+            }
+          }
+          start = -1;
+        }
+      }
+    }
+  }
+  return lines;
+}
+
+function traceStructuralRooms(pixels, width, height, options) {
+  const scale = Math.min(width / CANVAS_W, height / CANVAS_H);
+  const wall = buildWallMask(pixels, width, height, {
+    ...options,
+    saturationCutoff: 0.4,
+    thresholdBias: -40,
+    closeGapPx: 0,
+  });
+  const mask = wall.rawMask.slice();
+  for (let i = 0; i < mask.length; i += 1) {
+    const p = i * 4;
+    const r = pixels[p];
+    const g = pixels[p + 1];
+    const b = pixels[p + 2];
+    // Include blue window strokes in the line pass without classifying pale floor fills as walls.
+    if (pixels[p + 3] >= 24 && r < 190 && b - r > 35 && g - r > 15) {
+      mask[i] = 1;
+    }
+  }
+
+  const passes = [[80, 40], [30, 24]];
+  const rooms = [];
+  for (const [horizontalMin, verticalMin] of passes) {
+    const lines = structuralLines(
+      mask,
+      width,
+      height,
+      Math.max(2, Math.round(horizontalMin * scale)),
+      Math.max(2, Math.round(verticalMin * scale))
+    );
+    const sealed = closeMask(lines, width, height, Math.max(1, Math.round(14 * scale)));
+    for (let x = 0; x < width; x += 1) {
+      sealed[x] = 1;
+      sealed[(height - 1) * width + x] = 1;
+    }
+    for (let y = 0; y < height; y += 1) {
+      sealed[y * width] = 1;
+      sealed[y * width + width - 1] = 1;
+    }
+    const candidates = segmentRooms(sealed, width, height, { ...options, pixels }).rooms;
+    for (const room of candidates) {
+      if (Math.max(room.w / room.h, room.h / room.w) > 6) continue;
+      const overlaps = rooms.some((existing) => {
+        const w = Math.max(0, Math.min(room.x + room.w, existing.x + existing.w) - Math.max(room.x, existing.x));
+        const h = Math.max(0, Math.min(room.y + room.h, existing.y + existing.h) - Math.max(room.y, existing.y));
+        return w * h > 0.15 * Math.min(room.w * room.h, existing.w * existing.h);
+      });
+      if (!overlaps) rooms.push(room);
+    }
+  }
+  rooms.sort((a, b) => Math.floor(a.y / 24) - Math.floor(b.y / 24) || a.x - b.x);
+  return rooms.slice(0, Math.max(1, options.maxRooms ?? DEFAULTS.maxRooms));
+}
+
 export function traceFromPixels(pixels, width, height, options = {}) {
   // Doorways are gaps in the walls. Sweep the closing radius and keep the pass that
   // seals the most rooms without swallowing the small ones.
@@ -485,8 +569,17 @@ export function traceFromPixels(pixels, width, height, options = {}) {
     }
   });
 
+  const structuralRooms = options.closeGapPx == null && !options.sealRadii &&
+    options.thresholdBias == null && options.saturationCutoff == null
+    ? traceStructuralRooms(pixels, width, height, options)
+    : [];
+  const area = (rooms) => rooms.reduce((sum, room) => sum + room.w * room.h, 0);
+  const useStructural = structuralRooms.length > 0 &&
+    structuralRooms.length < best.segmentation.rooms.length &&
+    area(structuralRooms) > area(best.segmentation.rooms) * 1.2;
+
   return {
-    rooms: best.segmentation.rooms,
+    rooms: useStructural ? structuralRooms : best.segmentation.rooms,
     rawMask: best.wall.rawMask,
     wallPixelCount: best.wall.wallPixelCount,
     meta: {
@@ -494,6 +587,7 @@ export function traceFromPixels(pixels, width, height, options = {}) {
       threshold: best.wall.threshold,
       darkWalls: best.wall.darkWalls,
       sealRadius: best.radius,
+      structural: useStructural,
       width,
       height,
     },
@@ -589,8 +683,34 @@ export async function traceFloorPlanImage(file, options = {}) {
     }
   }
 
+  const nativeCanvas = document.createElement("canvas");
+  nativeCanvas.width = image.width;
+  nativeCanvas.height = image.height;
+  const nativeContext = nativeCanvas.getContext("2d", { willReadFrequently: true });
+  if (!nativeContext) throw new Error("Auto-trace could not initialize the source image processor.");
+  nativeContext.drawImage(image, 0, 0);
+  const transform = { scale, x: drawX, y: drawY };
+  const fixtures = detectDeskFixtures(
+    nativeContext.getImageData(0, 0, image.width, image.height).data,
+    image.width, image.height, best.rooms, transform
+  );
+  let labels = [];
+  let labelError = null;
+  if (best.rooms.length) {
+    try {
+      labels = await recognizeRoomLabels(nativeContext, image.width, image.height, best.rooms, transform, options.onProgress);
+    } catch (error) {
+      labelError = error instanceof Error ? error.message : String(error);
+    }
+  }
   return {
-    rooms: best.rooms,
+    rooms: best.rooms.map((room, index) => ({
+      ...room,
+      cat: labels[index]?.cat || "unspecified",
+      name: labels[index]?.name || "",
+    })),
+    fixtures,
+    labelError,
     wallPixelCount: best.wallPixelCount,
     wallMaskUrl: renderMaskToDataUrl(best.rawMask, canvasW, canvasH),
     profile: bestProfile,

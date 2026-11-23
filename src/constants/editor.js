@@ -3,6 +3,7 @@ export const CANVAS_H = 600;
 export const METERS_PER_PX = 0.1;
 export const GRID_SIZE = 20;
 export const MIN_ITEM_SIZE = 20;
+export const MIN_FIXTURE_SIZE = 2;
 export const TRACE_MIN_ROOM_SIZE_PX = 14;
 export const TRACE_MAX_ROOM_SUGGESTIONS = 250;
 export const DEFAULT_LAT = "45.3476";
@@ -14,6 +15,8 @@ export const ROOM_TYPES = [
   { cat: "workspace", icon: "💻", label: "Workspace", w: 60, h: 50, color: "#8b5cf6" },
   { cat: "restroom", icon: "🚻", label: "Restroom", w: 60, h: 50, color: "#ec4899" },
   { cat: "kitchen", icon: "🍳", label: "Kitchen", w: 80, h: 60, color: "#f59e0b" },
+  { cat: "lounge", icon: "🛋", label: "Lounge", w: 80, h: 60, color: "#a855f7" },
+  { cat: "storage", icon: "📦", label: "Storage", w: 60, h: 50, color: "#78716c" },
   { cat: "walkway", icon: "🚶", label: "Walkway", w: 140, h: 30, color: "#94a3b8" },
   { cat: "stairs", icon: "🪜", label: "Stairs", w: 50, h: 50, color: "#10b981" },
   { cat: "elevator", icon: "🛗", label: "Elevator", w: 45, h: 45, color: "#14b8a6" },
@@ -22,3 +25,4 @@ export const ROOM_TYPES = [
 ];
 
 export const CAT_MAP = Object.fromEntries(ROOM_TYPES.map((room) => [room.cat, room]));
+export const DESK_TYPE = { cat: "desk", icon: "▪", label: "Desk", w: 18, h: 9, color: "#f97316" };

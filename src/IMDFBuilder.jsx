@@ -7,6 +7,8 @@ import {
   CANVAS_H,
   CANVAS_W,
   CAT_MAP,
+  DESK_TYPE,
+  MIN_FIXTURE_SIZE,
   ROOM_TYPES,
 } from "./constants/editor";
 import { createBuilding, createItemFromCategory, createLevel, createPastedItem } from "./state/factories";
@@ -54,7 +56,7 @@ function getBuildingReadiness(building) {
     .filter((idx) => idx >= 0);
   const hasFloorNames = missingFloorNameIndexes.length === 0;
   const roomCount = levels.reduce(
-    (sum, level) => sum + (Array.isArray(level.items) ? level.items.length : 0),
+    (sum, level) => sum + (Array.isArray(level.items) ? level.items.filter((item) => item.featureType !== "fixture").length : 0),
     0
   );
 
@@ -116,16 +118,18 @@ function normalizeUploadedConfiguration(rawConfig) {
       ? building.levels.map((level, levelIndex) => {
           const rawItems = Array.isArray(level?.items) ? level.items : [];
           const normalizedItems = rawItems.map((item, itemIndex) => {
-            const roomType = CAT_MAP[item?.cat] || CAT_MAP.unspecified;
+            const isFixture = item?.featureType === "fixture";
+            const roomType = isFixture ? DESK_TYPE : CAT_MAP[item?.cat] || CAT_MAP.unspecified;
             const clamped = clampRectToCanvas({
               x: parseNumber(item?.x, 0),
               y: parseNumber(item?.y, 0),
               w: parseNumber(item?.w, roomType.w),
               h: parseNumber(item?.h, roomType.h),
-            });
+            }, CANVAS_W, CANVAS_H, isFixture ? MIN_FIXTURE_SIZE : undefined);
             return {
               id: isNonEmptyString(item?.id) ? item.id : uid(),
               cat: roomType.cat,
+              ...(isFixture ? { featureType: "fixture" } : {}),
               name: isNonEmptyString(item?.name) ? item.name : `Room ${itemIndex + 1}`,
               accessibility: item?.accessibility === "yes" || item?.accessibility === "no"
                 ? item.accessibility
@@ -199,7 +203,7 @@ export default function IMDFBuilder() {
     () =>
       buildings.reduce(
         (buildingTotal, building) =>
-          buildingTotal + building.levels.reduce((levelTotal, lv) => levelTotal + lv.items.length, 0),
+          buildingTotal + building.levels.reduce((levelTotal, lv) => levelTotal + lv.items.filter((item) => item.featureType !== "fixture").length, 0),
         0
       ),
     [buildings]
@@ -493,18 +497,18 @@ export default function IMDFBuilder() {
           w: item.w,
           h: item.h,
         };
-        if (snapEnabled) {
+        if (snapEnabled && item.featureType !== "fixture") {
           candidate.x = snapValue(candidate.x);
           candidate.y = snapValue(candidate.y);
         }
-        const alignment = alignRectToItems({
+        const alignment = item.featureType === "fixture" ? { rect: candidate, guides: [] } : alignRectToItems({
           rect: candidate,
           items,
           activeItemId: dragging.id,
           canvasW: CANVAS_W,
           canvasH: CANVAS_H,
         });
-        const nextRect = clampRectToCanvas(alignment.rect, CANVAS_W, CANVAS_H);
+        const nextRect = clampRectToCanvas(alignment.rect, CANVAS_W, CANVAS_H, item.featureType === "fixture" ? MIN_FIXTURE_SIZE : undefined);
         setAlignmentGuides(alignment.guides);
         updateItem(
           dragging.id,
@@ -515,6 +519,8 @@ export default function IMDFBuilder() {
           { record: false }
         );
       } else if (resizing) {
+        const item = items.find((currentItem) => currentItem.id === resizing.id);
+        if (!item) return;
         const dx = e.clientX - resizing.startX;
         const dy = e.clientY - resizing.startY;
         const handle = resizing.handle;
@@ -540,7 +546,7 @@ export default function IMDFBuilder() {
           nextRect.y = resizing.startItemY + dy;
         }
 
-        if (snapEnabled) {
+        if (snapEnabled && item.featureType !== "fixture") {
           nextRect.w = snapValue(nextRect.w);
           nextRect.h = snapValue(nextRect.h);
           if (handle.includes("w")) {
@@ -551,7 +557,7 @@ export default function IMDFBuilder() {
           }
         }
 
-        nextRect = clampRectToCanvas(nextRect, CANVAS_W, CANVAS_H);
+        nextRect = clampRectToCanvas(nextRect, CANVAS_W, CANVAS_H, item.featureType === "fixture" ? MIN_FIXTURE_SIZE : undefined);
         setAlignmentGuides([]);
         updateItem(
           resizing.id,
@@ -577,7 +583,7 @@ export default function IMDFBuilder() {
           const itemY = e.clientY - rect.top - dragging.offY;
           if (itemX >= -50 && itemX <= CANVAS_W + 50 && itemY >= -50 && itemY <= CANVAS_H + 50) {
             let nextItem = createItemFromCategory(dragging.cat, itemX, itemY);
-            if (snapEnabled) {
+            if (snapEnabled && clipboardItem.featureType !== "fixture") {
               nextItem = {
                 ...nextItem,
                 x: snapValue(nextItem.x),
@@ -636,7 +642,7 @@ export default function IMDFBuilder() {
         y: snapValue(rect.y),
       };
     }
-    rect = clampRectToCanvas(rect, CANVAS_W, CANVAS_H);
+    rect = clampRectToCanvas(rect, CANVAS_W, CANVAS_H, clipboardItem.featureType === "fixture" ? MIN_FIXTURE_SIZE : undefined);
 
     const pasted = createPastedItem(clipboardItem, rect.x, rect.y);
     pasted.w = rect.w;
@@ -827,7 +833,14 @@ export default function IMDFBuilder() {
 
       try {
         const [traced, imagePreviewUrl] = await Promise.all([
-          traceFloorPlanImage(file, { canvasW: CANVAS_W, canvasH: CANVAS_H }),
+          traceFloorPlanImage(file, {
+            canvasW: CANVAS_W,
+            canvasH: CANVAS_H,
+            onProgress: (done, total) => setTraceStatus({
+              type: "progress",
+              text: `Reading room labels locally: ${done}/${total}...`,
+            }),
+          }),
           readFileAsDataUrl(file),
         ]);
 
@@ -835,6 +848,7 @@ export default function IMDFBuilder() {
           ...prev,
           [activeTraceKey]: {
             rooms: traced.rooms,
+            fixtures: traced.fixtures,
             wallMaskUrl: traced.wallMaskUrl,
             wallPixelCount: traced.wallPixelCount,
             profile: traced.profile,
@@ -845,10 +859,10 @@ export default function IMDFBuilder() {
           },
         }));
         setTraceStatus({
-          type: traced.rooms.length > 0 ? "success" : "error",
+          type: traced.rooms.length > 0 && !traced.labelError ? "success" : "error",
           text:
             traced.rooms.length > 0
-              ? `Auto-trace found ${traced.rooms.length} rooms. Review the green outlines, then click "Add Detected Rooms".`
+              ? `Found ${traced.rooms.length} rooms and ${traced.fixtures.length} possible desks. ${traced.labelError ? `Label recognition failed: ${traced.labelError}. ` : ""}Review all suggestions; unrecognized rooms are Other.`
               : "Auto-trace found walls but no enclosed rooms. Crop the image tightly to the floor plan and try again.",
         });
       } catch (error) {
@@ -872,15 +886,22 @@ export default function IMDFBuilder() {
     const generatedItems = [];
     const countsByCat = {};
     activeTrace.rooms.forEach((roomRect) => {
-      const cat = roomRect.cat || "room";
+      const cat = roomRect.cat || "unspecified";
       countsByCat[cat] = (countsByCat[cat] || 0) + 1;
       const label = CAT_MAP[cat]?.label || "Room";
       const nextItem = createItemFromCategory(cat, roomRect.x, roomRect.y);
       generatedItems.push({
         ...nextItem,
-        name: `${label} ${countsByCat[cat]}`,
+        name: roomRect.name || `${label} ${countsByCat[cat]}`,
         w: roomRect.w,
         h: roomRect.h,
+      });
+    });
+    activeTrace.fixtures.forEach((fixture, index) => {
+      generatedItems.push({
+        ...fixture,
+        id: uid(),
+        name: `Desk ${index + 1}`,
       });
     });
 
@@ -893,13 +914,15 @@ export default function IMDFBuilder() {
       [activeTraceKey]: {
         ...activeTrace,
         rooms: [],
+        fixtures: [],
         applied: true,
-        appliedRoomCount: generatedItems.length,
+        appliedRoomCount: activeTrace.rooms.length,
+        appliedFixtureCount: activeTrace.fixtures.length,
       },
     }));
     setTraceStatus({
       type: "success",
-      text: `Added ${generatedItems.length} rooms. The wall blueprint stays visible so you can name, retype, and fine-tune each room.`,
+      text: `Added ${activeTrace.rooms.length} rooms and ${activeTrace.fixtures.length} possible desks. Review their types and positions.`,
     });
   }, [activeTrace, activeTraceKey, setActiveItems]);
 

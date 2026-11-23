@@ -28,6 +28,7 @@ describe("IMDF export", () => {
               w: 80,
               h: 60,
             },
+            { id: "d1", featureType: "fixture", cat: "desk", name: "Desk 1", x: 110, y: 110, w: 18, h: 9 },
           ],
         },
       ],
@@ -40,6 +41,7 @@ describe("IMDF export", () => {
       "level.geojson",
       "unit.geojson",
       "fixture.geojson",
+      "section.geojson",
     ]);
 
     const unitGeojson = JSON.parse(
@@ -48,5 +50,15 @@ describe("IMDF export", () => {
     expect(unitGeojson.features).toHaveLength(1);
     expect(unitGeojson.features[0].properties.category).toBe("office");
     expect(unitGeojson.features[0].properties.level_id).toBe("l1");
+    const fixtures = JSON.parse(files.find((file) => file.name === "fixture.geojson").content);
+    expect(fixtures.features).toHaveLength(1);
+    expect(fixtures.features[0]).toMatchObject({
+      id: "d1",
+      feature_type: "fixture",
+      geometry: { type: "Polygon" },
+      properties: { category: "desk", name: { en: "Desk 1" }, level_id: "l1", anchor_id: null },
+    });
+    const section = JSON.parse(files.find((file) => file.name === "section.geojson").content);
+    expect(section.features).toEqual([]);
   });
 });

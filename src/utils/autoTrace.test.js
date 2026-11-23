@@ -54,20 +54,23 @@ describe("pixel auto-trace", () => {
     widths.forEach((w) => expect(w).toBeGreaterThan(120));
   });
 
-  it("ignores colored fills when classifying walls and tags them as rooms", () => {
-    const width = 200;
+  it("does not mistake colored fills for walls and uses warm fills for meeting rooms", () => {
+    const width = 300;
     const height = 200;
     const plan = createPlan(width, height);
-    plan.rect(10, 10, 189, 189, 2, GRAY);
+    plan.rect(10, 10, 289, 189, 2, GRAY);
     plan.fill(100, 10, 101, 189, GRAY);
-    // Pastel blue fill inside the right room must not be treated as a wall.
-    plan.fill(104, 14, 185, 185, BLUE_FILL);
+    plan.fill(200, 10, 201, 189, GRAY);
+    plan.fill(104, 14, 196, 185, BLUE_FILL);
+    plan.fill(204, 14, 285, 185, [250, 230, 205]);
 
     const traced = traceFromPixels(plan.pixels, width, height);
-    expect(traced.rooms.length).toBe(2);
-    const colored = traced.rooms.find((room) => room.x > 90);
+    expect(traced.rooms.length).toBe(3);
+    const blue = traced.rooms.find((room) => room.x > 90 && room.x < 190);
+    const warm = traced.rooms.find((room) => room.x > 190);
     const plain = traced.rooms.find((room) => room.x < 90);
-    expect(colored.cat).toBe("room");
+    expect(blue.cat).toBe("office");
+    expect(warm.cat).toBe("room");
     expect(plain.cat).toBe("office");
   });
 
@@ -113,5 +116,39 @@ describe("pixel auto-trace", () => {
     const wall = buildWallMask(plan.pixels, width, height, { closeGapPx: 1 });
     const rooms = segmentRooms(wall.mask, width, height, { closeGapPx: 1 });
     expect(rooms.rooms.length).toBe(1);
+  });
+
+  it("finds furnished rooms instead of turning desks into rooms", () => {
+    const width = 800;
+    const height = 600;
+    const plan = createPlan(width, height);
+    const wall = [60, 75, 85];
+    const desk = [140, 155, 165];
+    plan.fill(30, 80, 769, 249, BLUE_FILL);
+    plan.rect(30, 80, 769, 249, 3, wall);
+    for (const x of [215, 400, 585]) {
+      plan.fill(x, 80, x + 2, 249, wall);
+    }
+    for (let room = 0; room < 4; room += 1) {
+      const left = 30 + room * 185;
+      plan.fill(left + 30, 80, left + 55, 82, [169, 205, 231]);
+      plan.fill(left + 95, 247, left + 110, 249, [255, 255, 255]);
+      for (let row = 0; row < 2; row += 1) {
+        for (let col = 0; col < 3; col += 1) {
+          const x = left + 20 + col * 48;
+          const y = 110 + row * 60;
+          plan.rect(x, y, x + 35, y + 22, 2, desk);
+          plan.fill(x + 2, y + 2, x + 33, y + 20, [255, 255, 255]);
+        }
+      }
+    }
+
+    const traced = traceFromPixels(plan.pixels, width, height);
+    expect(traced.rooms).toHaveLength(4);
+    for (const room of traced.rooms) {
+      expect(room.w).toBeGreaterThan(170);
+      expect(room.h).toBeGreaterThan(150);
+      expect(room.cat).toBe("office");
+    }
   });
 });

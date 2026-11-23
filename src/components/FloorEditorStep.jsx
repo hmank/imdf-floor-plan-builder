@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { CANVAS_H, CANVAS_W, GRID_SIZE, METERS_PER_PX } from "../constants/editor";
+import { CANVAS_H, CANVAS_W, DESK_TYPE, GRID_SIZE, METERS_PER_PX, MIN_FIXTURE_SIZE, MIN_ITEM_SIZE } from "../constants/editor";
 import { chip, inp, lbl } from "../styles/ui";
 
 function HistoryPill({ historyActions }) {
@@ -145,10 +145,11 @@ export default function FloorEditorStep({
             AUTO-TRACE FLOOR PLAN
           </div>
           <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>
-            Upload a floor-plan image to trace wall outlines and generate editable room suggestions.
+            Trace rooms, possible desks, and labels locally. Review every suggestion before export.
           </div>
           <button
             onClick={() => traceInputRef.current?.click()}
+            disabled={traceStatus?.type === "progress"}
             style={{
               ...chip,
               width: "100%",
@@ -167,8 +168,8 @@ export default function FloorEditorStep({
               <div>Source: {traceOverlay.sourceName}</div>
               <div>
                 {traceOverlay.applied
-                  ? `${traceOverlay.appliedRoomCount || 0} rooms added · wall blueprint shown`
-                  : `${traceOverlay.rooms.length} rooms detected`}
+                  ? `${traceOverlay.appliedRoomCount || 0} rooms and ${traceOverlay.appliedFixtureCount || 0} desks added`
+                  : `${traceOverlay.rooms.length} rooms and ${traceOverlay.fixtures.length} possible desks detected`}
               </div>
               {traceOverlay.applied && (
                 <div style={{ marginTop: 6, color: "var(--success-light)" }}>
@@ -195,7 +196,7 @@ export default function FloorEditorStep({
                     textAlign: "center",
                   }}
                 >
-                  + Add Detected Rooms
+                  + Add Detected Rooms and Desks
                 </button>
                 <button
                   onClick={onClearTraceOverlay}
@@ -449,6 +450,15 @@ export default function FloorEditorStep({
               />
               ))}
 
+            {!traceOverlay?.applied && traceOverlay?.fixtures?.map((fixture, index) => (
+              <div key={`trace-desk-${index}`} style={{
+                position: "absolute", left: fixture.x, top: fixture.y,
+                width: fixture.w, height: fixture.h, border: "1px solid #f97316",
+                background: "rgba(249,115,22,0.3)", pointerEvents: "none", zIndex: 3,
+                boxSizing: "border-box",
+              }} />
+            ))}
+
             {alignmentGuides.length > 0 && (
               <svg
                 width={CANVAS_W}
@@ -511,11 +521,13 @@ export default function FloorEditorStep({
             )}
 
             {items.map((item) => {
-              const roomType = catMap[item.cat] || catMap.unspecified;
+              const isFixture = item.featureType === "fixture";
+              const roomType = isFixture ? DESK_TYPE : catMap[item.cat] || catMap.unspecified;
               const isSelected = selected === item.id;
               return (
                 <div
                   key={item.id}
+                  title={item.name || roomType.label}
                   onMouseDown={(e) => onItemMouseDown(e, item)}
                   style={{
                     position: "absolute",
@@ -523,23 +535,23 @@ export default function FloorEditorStep({
                     top: item.y,
                     width: item.w,
                     height: item.h,
-                    background: `var(--room-background, ${roomType.color}25)`,
+                    background: isFixture ? "#f97316" : `var(--room-background, ${roomType.color}25)`,
                     border: isSelected
                       ? `2px solid var(--selected-room-border, ${roomType.color})`
                       : `1px solid var(--room-border, ${roomType.color}60)`,
-                    borderRadius: 6,
+                    borderRadius: isFixture ? 1 : 6,
                     cursor: "move",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
                     boxShadow: isSelected ? `0 0 20px ${roomType.color}30` : "none",
-                    zIndex: isSelected ? 10 : 6,
+                    zIndex: isFixture ? (isSelected ? 12 : 11) : (isSelected ? 10 : 6),
                   }}
                 >
-                  <span style={{ fontSize: Math.min(item.w, item.h) > 40 ? 18 : 12, lineHeight: 1 }}>
+                  {!isFixture && <span style={{ fontSize: Math.min(item.w, item.h) > 40 ? 18 : 12, lineHeight: 1 }}>
                     {roomType.icon}
-                  </span>
+                  </span>}
                   {item.w > 50 && item.h > 35 && (
                     <span
                       style={{
@@ -645,9 +657,10 @@ export default function FloorEditorStep({
             <input
               style={{ ...inp, fontSize: 13, padding: "7px 10px" }}
               value={selectedItem.name}
-              placeholder={catMap[selectedItem.cat]?.label}
+              placeholder={selectedItem.featureType === "fixture" ? "Desk" : catMap[selectedItem.cat]?.label}
               onChange={(e) => onUpdateItem(selectedItem.id, { name: e.target.value })}
             />
+            {selectedItem.featureType === "fixture" ? <div style={{ ...lbl }}>Type: Desk fixture</div> : <>
             <label style={lbl}>Type</label>
             <select
               style={{ ...inp, fontSize: 13, padding: "7px 10px" }}
@@ -686,6 +699,7 @@ export default function FloorEditorStep({
               placeholder="Room PlaceId from MS Places"
               onChange={(e) => onUpdateItem(selectedItem.id, { directoryId: e.target.value })}
             />
+            </>}
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>X</label>
@@ -725,7 +739,7 @@ export default function FloorEditorStep({
                       return;
                     }
                     onUpdateItem(selectedItem.id, {
-                      w: Math.max(20, Math.round(widthMeters / METERS_PER_PX)),
+                      w: Math.max(selectedItem.featureType === "fixture" ? MIN_FIXTURE_SIZE : MIN_ITEM_SIZE, Math.round(widthMeters / METERS_PER_PX)),
                     });
                   }}
                 />
@@ -744,7 +758,7 @@ export default function FloorEditorStep({
                       return;
                     }
                     onUpdateItem(selectedItem.id, {
-                      h: Math.max(20, Math.round(lengthMeters / METERS_PER_PX)),
+                      h: Math.max(selectedItem.featureType === "fixture" ? MIN_FIXTURE_SIZE : MIN_ITEM_SIZE, Math.round(lengthMeters / METERS_PER_PX)),
                     });
                   }}
                 />
@@ -770,7 +784,7 @@ export default function FloorEditorStep({
                 marginBottom: 8,
               }}
             >
-              🗑 Delete Room
+              🗑 Delete {selectedItem.featureType === "fixture" ? "Desk" : "Room"}
             </button>
             <button
               onClick={onDeleteSelected}

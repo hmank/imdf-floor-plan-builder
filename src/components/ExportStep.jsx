@@ -11,7 +11,7 @@ export default function ExportStep({
   const readyBuildings = buildings.filter((_, idx) => readinessByBuilding[idx]?.exportReady);
   const readyRoomCount = readyBuildings.reduce(
     (sum, building) =>
-      sum + building.levels.reduce((floorSum, level) => floorSum + level.items.length, 0),
+      sum + building.levels.reduce((floorSum, level) => floorSum + level.items.filter((item) => item.featureType !== "fixture").length, 0),
     0
   );
 
@@ -57,7 +57,7 @@ export default function ExportStep({
             exportReady: false,
             exportMissing: ["required setup fields"],
           };
-          const itemCount = building.levels.reduce((sum, level) => sum + level.items.length, 0);
+          const itemCount = readiness.roomCount || 0;
           const canExport = readiness?.exportReady;
           return (
             <div
