@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CANVAS_H, CANVAS_W, DESK_TYPE, GRID_SIZE, METERS_PER_PX, MIN_FIXTURE_SIZE, MIN_ITEM_SIZE } from "../constants/editor";
 import { chip, inp, lbl } from "../styles/ui";
 
@@ -25,6 +25,8 @@ export default function FloorEditorStep({
   roomTypes,
   catMap,
   canvasRef,
+  canvasZoom,
+  onCanvasZoomChange,
   alignmentGuides,
   isPaletteDragging,
   snapEnabled,
@@ -51,6 +53,42 @@ export default function FloorEditorStep({
   onGoToExport,
 }) {
   const traceInputRef = useRef(null);
+  const workspaceRef = useRef(null);
+  const [maximized, setMaximized] = useState(false);
+  const [panelsVisible, setPanelsVisible] = useState(true);
+  const [fitToView, setFitToView] = useState(true);
+  const minZoom = 0.25;
+  const maxZoom = 4;
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace || !fitToView) return undefined;
+    const fit = () => {
+      const zoom = Math.min((workspace.clientWidth - 40) / CANVAS_W, (workspace.clientHeight - 40) / CANVAS_H);
+      onCanvasZoomChange(Math.max(minZoom, Math.min(maxZoom, Math.floor(zoom * 100) / 100)));
+    };
+    const observer = new ResizeObserver(fit);
+    observer.observe(workspace);
+    fit();
+    return () => observer.disconnect();
+  }, [fitToView, onCanvasZoomChange]);
+
+  useEffect(() => {
+    if (!maximized) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setMaximized(false);
+        setPanelsVisible(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [maximized]);
+
+  const changeZoom = (delta) => {
+    setFitToView(false);
+    onCanvasZoomChange((previous) => Math.max(minZoom, Math.min(maxZoom, Math.round((previous + delta) * 100) / 100)));
+  };
+  const zoomButton = { ...chip, border: "1px solid var(--border-strong)", color: "var(--text-strong)" };
   const traceStatusColor =
     traceStatus?.type === "error"
       ? "var(--error-text)"
@@ -61,14 +99,17 @@ export default function FloorEditorStep({
           : "var(--text-secondary)";
 
   return (
-    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+    <div style={{
+      flex: 1, minHeight: 0, display: "flex", overflow: "hidden",
+      ...(maximized ? { position: "fixed", inset: 0, zIndex: 100, background: "var(--app-background)" } : {}),
+    }}>
       <div
         style={{
           width: 210,
           background: "var(--sidebar-background)",
           borderRight: "1px solid var(--border)",
           padding: "12px 10px",
-          display: "flex",
+          display: maximized && !panelsVisible ? "none" : "flex",
           flexDirection: "column",
           flexShrink: 0,
           overflow: "auto",
@@ -237,7 +278,7 @@ export default function FloorEditorStep({
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div
           style={{
             padding: "8px 16px",
@@ -247,6 +288,7 @@ export default function FloorEditorStep({
             alignItems: "center",
             gap: 8,
             flexShrink: 0,
+            overflowX: "auto",
           }}
         >
           {buildings.length > 1 &&
@@ -334,23 +376,57 @@ export default function FloorEditorStep({
           <span style={{ fontSize: 11, color: "var(--text-subtle)" }}>{items.length} items</span>
         </div>
 
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "6px 16px",
+          background: "var(--sidebar-background)", borderBottom: "1px solid var(--border)",
+          flexShrink: 0, overflowX: "auto",
+        }}>
+          <button style={zoomButton} onClick={() => changeZoom(-0.25)} disabled={canvasZoom <= minZoom} aria-label="Zoom out">−</button>
+          <span aria-live="polite" style={{ minWidth: 45, fontSize: 12, textAlign: "center" }}>{Math.round(canvasZoom * 100)}%</span>
+          <button style={zoomButton} onClick={() => changeZoom(0.25)} disabled={canvasZoom >= maxZoom} aria-label="Zoom in">+</button>
+          <button style={zoomButton} onClick={() => setFitToView(true)}>Fit to view</button>
+          <button style={zoomButton} onClick={() => {
+            setMaximized(!maximized);
+            setPanelsVisible(maximized);
+            setFitToView(true);
+          }}>
+            {maximized ? "Exit maximized view" : "Maximize canvas"}
+          </button>
+          {maximized && <button style={zoomButton} onClick={() => setPanelsVisible((value) => !value)}>
+            {panelsVisible ? "Hide side panels" : "Show side panels"}
+          </button>}
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Scroll to pan when zoomed in</span>
+        </div>
+
         <div
+          ref={workspaceRef}
+          role="region"
+          aria-label="Floor canvas viewport"
+          tabIndex={0}
           style={{
             flex: 1,
+            minHeight: 0,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             background: "var(--workspace-background)",
             overflow: "auto",
             padding: 20,
           }}
         >
+          <div style={{
+            width: CANVAS_W * canvasZoom, height: CANVAS_H * canvasZoom,
+            flexShrink: 0, margin: "auto", position: "relative",
+          }}>
           <div
             ref={canvasRef}
+            role="region"
+            aria-label="Floor canvas"
             onMouseDown={onCanvasMouseDown}
             style={{
               width: CANVAS_W,
               height: CANVAS_H,
+              boxSizing: "border-box",
+              transform: `scale(${canvasZoom})`,
+              transformOrigin: "top left",
               background: "var(--canvas-background)",
               borderRadius: 12,
               border: isPaletteDragging ? "1px solid var(--accent-border)" : "1px solid var(--border)",
@@ -626,6 +702,7 @@ export default function FloorEditorStep({
               );
             })}
           </div>
+          </div>
         </div>
       </div>
 
@@ -635,7 +712,7 @@ export default function FloorEditorStep({
           background: "var(--sidebar-background)",
           borderLeft: "1px solid var(--border)",
           padding: "14px 12px",
-          display: "flex",
+          display: maximized && !panelsVisible ? "none" : "flex",
           flexDirection: "column",
           flexShrink: 0,
         }}

@@ -8,6 +8,10 @@ export function snapValue(value, gridSize = GRID_SIZE) {
   return Math.round(value / gridSize) * gridSize;
 }
 
+export function clientToCanvasPoint(clientX, clientY, rect, zoom) {
+  return { x: (clientX - rect.left) / zoom, y: (clientY - rect.top) / zoom };
+}
+
 export function clampRectToCanvas(
   rect,
   canvasW = CANVAS_W,

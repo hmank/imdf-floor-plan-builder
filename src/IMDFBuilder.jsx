@@ -13,7 +13,7 @@ import {
 } from "./constants/editor";
 import { createBuilding, createItemFromCategory, createLevel, createPastedItem } from "./state/factories";
 import { getInitialTheme, saveTheme } from "./styles/theme";
-import { alignRectToItems, clampRectToCanvas, snapValue } from "./utils/editorMath";
+import { alignRectToItems, clampRectToCanvas, clientToCanvasPoint, snapValue } from "./utils/editorMath";
 import { createHistoryState, commitFromSnapshot, redoHistory, undoHistory, updateHistoryPresent } from "./utils/history";
 import { traceFloorPlanImage } from "./utils/autoTrace";
 import { generateImdfFiles } from "./utils/imdfExport";
@@ -177,6 +177,7 @@ export default function IMDFBuilder() {
   const [resizing, setResizing] = useState(null);
   const [alignmentGuides, setAlignmentGuides] = useState([]);
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [canvasZoom, setCanvasZoom] = useState(1);
   const [clipboardItem, setClipboardItem] = useState(null);
   const [exportStatus, setExportStatus] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
@@ -440,15 +441,16 @@ export default function IMDFBuilder() {
       if (!rect) {
         return;
       }
+      const point = clientToCanvasPoint(e.clientX, e.clientY, rect, canvasZoom);
       gestureSnapshotRef.current = buildings;
       setDragging({
         id: item.id,
-        offX: e.clientX - rect.left - item.x,
-        offY: e.clientY - rect.top - item.y,
+        offX: point.x - item.x,
+        offY: point.y - item.y,
       });
       setAlignmentGuides([]);
     },
-    [buildings]
+    [buildings, canvasZoom]
   );
 
   const onResizeMouseDown = useCallback(
@@ -491,9 +493,10 @@ export default function IMDFBuilder() {
           return;
         }
 
+        const point = clientToCanvasPoint(e.clientX, e.clientY, rect, canvasZoom);
         const candidate = {
-          x: e.clientX - rect.left - dragging.offX,
-          y: e.clientY - rect.top - dragging.offY,
+          x: point.x - dragging.offX,
+          y: point.y - dragging.offY,
           w: item.w,
           h: item.h,
         };
@@ -521,8 +524,8 @@ export default function IMDFBuilder() {
       } else if (resizing) {
         const item = items.find((currentItem) => currentItem.id === resizing.id);
         if (!item) return;
-        const dx = e.clientX - resizing.startX;
-        const dy = e.clientY - resizing.startY;
+        const dx = (e.clientX - resizing.startX) / canvasZoom;
+        const dy = (e.clientY - resizing.startY) / canvasZoom;
         const handle = resizing.handle;
         let nextRect = {
           x: resizing.startItemX,
@@ -571,7 +574,7 @@ export default function IMDFBuilder() {
         );
       }
     },
-    [dragging, items, resizing, snapEnabled, updateItem]
+    [canvasZoom, dragging, items, resizing, snapEnabled, updateItem]
   );
 
   const onMouseUp = useCallback(
@@ -579,11 +582,12 @@ export default function IMDFBuilder() {
       if (dragging?.fromPalette) {
         const rect = canvasRef.current?.getBoundingClientRect();
         if (rect) {
-          const itemX = e.clientX - rect.left - dragging.offX;
-          const itemY = e.clientY - rect.top - dragging.offY;
+          const point = clientToCanvasPoint(e.clientX, e.clientY, rect, canvasZoom);
+          const itemX = point.x - dragging.offX;
+          const itemY = point.y - dragging.offY;
           if (itemX >= -50 && itemX <= CANVAS_W + 50 && itemY >= -50 && itemY <= CANVAS_H + 50) {
             let nextItem = createItemFromCategory(dragging.cat, itemX, itemY);
-            if (snapEnabled && clipboardItem.featureType !== "fixture") {
+            if (snapEnabled) {
               nextItem = {
                 ...nextItem,
                 x: snapValue(nextItem.x),
@@ -610,8 +614,9 @@ export default function IMDFBuilder() {
         }
       } else if ((dragging || resizing) && gestureSnapshotRef.current) {
         const label = dragging ? "Move room" : "Resize room";
+        const snapshot = gestureSnapshotRef.current;
         setHistory((prevHistory) =>
-          commitFromSnapshot(prevHistory, gestureSnapshotRef.current, { label })
+          commitFromSnapshot(prevHistory, snapshot, { label })
         );
       }
 
@@ -620,7 +625,7 @@ export default function IMDFBuilder() {
       setResizing(null);
       setAlignmentGuides([]);
     },
-    [dragging, resizing, setActiveItems, snapEnabled]
+    [canvasZoom, dragging, resizing, setActiveItems, snapEnabled]
   );
 
   const pasteClipboardItem = useCallback(() => {
@@ -635,7 +640,7 @@ export default function IMDFBuilder() {
       w: clipboardItem.w,
       h: clipboardItem.h,
     };
-    if (snapEnabled) {
+    if (snapEnabled && clipboardItem.featureType !== "fixture") {
       rect = {
         ...rect,
         x: snapValue(rect.x),
@@ -949,6 +954,7 @@ export default function IMDFBuilder() {
         background: "var(--app-background)",
         color: "var(--text)",
         minHeight: "100vh",
+        height: step === 1 ? "100vh" : undefined,
         display: "flex",
         flexDirection: "column",
         userSelect: "none",
@@ -998,6 +1004,8 @@ export default function IMDFBuilder() {
           roomTypes={ROOM_TYPES}
           catMap={CAT_MAP}
           canvasRef={canvasRef}
+          canvasZoom={canvasZoom}
+          onCanvasZoomChange={setCanvasZoom}
           alignmentGuides={alignmentGuides}
           isPaletteDragging={Boolean(dragging?.fromPalette)}
           snapEnabled={snapEnabled}

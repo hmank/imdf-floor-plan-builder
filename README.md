@@ -101,6 +101,7 @@ Your selection is saved in this browser on this device when browser storage is a
 - **Drag** a selected room to reposition it
 - **Drag the handles** on edges/corners to resize
 - **Snap to grid** is enabled by default (toggle with **G**)
+- Use **+** and **−** to zoom, **Fit to view** to fit the floor, and **Maximize canvas** for a larger editing view. In maximized view, show the side panels to edit properties or add rooms; press Esc to exit. Scroll to pan when zoomed in
 - **Alignment guides** appear while dragging near other rooms
 - **Press Delete/Backspace** key or click the 🗑 button to remove
 - **Undo / Redo** with toolbar buttons or keyboard shortcuts

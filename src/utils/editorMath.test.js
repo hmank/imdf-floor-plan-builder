@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { alignRectToItems, clampRectToCanvas, snapValue } from "./editorMath";
+import { alignRectToItems, clampRectToCanvas, clientToCanvasPoint, snapValue } from "./editorMath";
 
 describe("editor math", () => {
+  it("maps screen coordinates into canvas coordinates at different zoom levels", () => {
+    const rect = { left: 100, top: 50 };
+    expect(clientToCanvasPoint(300, 150, rect, 2)).toEqual({ x: 100, y: 50 });
+    expect(clientToCanvasPoint(150, 75, rect, 0.5)).toEqual({ x: 100, y: 50 });
+  });
   it("snaps scalar values to the grid", () => {
     expect(snapValue(41, 40)).toBe(40);
     expect(snapValue(59, 40)).toBe(40);
